@@ -1,0 +1,192 @@
+/* =========================
+   DE ZÉRO — GLOBAL STYLES
+========================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+
+  width: 100%;
+  min-height: 100%;
+
+  background: #080c15;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+
+  width: 100%;
+  min-height: 100vh;
+
+  background: #080c15;
+  color: #f5f3fa;
+
+  font-family: Arial, Helvetica, sans-serif;
+
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* =========================
+   GLOBAL TYPOGRAPHY
+========================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+  color: #f5f3fa;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+/* =========================
+   BUTTON RESET
+========================= */
+
+button {
+  font-family: inherit;
+}
+
+/* =========================
+   INPUT RESET
+========================= */
+
+input,
+textarea {
+  font-family: inherit;
+}
+
+input:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+}
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080c15;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #29213c;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #873cff;
+}
+
+/* =========================
+   SELECTION
+========================= */
+
+::selection {
+  background: #873cff;
+  color: #ffffff;
+}
+
+/* =========================
+   GLOBAL PURPLE
+========================= */
+
+:root {
+  --dz-bg: #080c15;
+  --dz-bg-soft: #0d101b;
+
+  --dz-card: #10131f;
+  --dz-card-soft: #151827;
+
+  --dz-border: #1c2130;
+
+  --dz-purple: #873cff;
+  --dz-purple-light: #a66cff;
+  --dz-purple-dark: #5721a8;
+
+  --dz-text: #f5f3fa;
+  --dz-text-soft: #a1a8ba;
+  --dz-text-muted: #707990;
+}
+
+/* =========================
+   APP BACKGROUND
+========================= */
+
+.app {
+  min-height: 100vh;
+
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(135, 60, 255, 0.08),
+      transparent 35%
+    ),
+    #080c15;
+}
+
+/* =========================
+   PAGE CONTAINER
+========================= */
+
+.page {
+  width: 100%;
+  min-height: calc(100vh - 76px);
+
+  background: #080c15;
+}
+
+/* =========================
+   COMMON CONTAINER
+========================= */
+
+.container {
+  width: 100%;
+  max-width: 1400px;
+
+  margin: 0 auto;
+  padding: 0 52px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 900px) {
+  .container {
+    padding: 0 28px;
+  }
+}
+
+@media (max-width: 700px) {
+  .container {
+    padding: 0 20px;
+  }
+}

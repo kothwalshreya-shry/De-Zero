@@ -1,0 +1,198 @@
+.navbar {
+  width: 100%;
+  height: 76px;
+
+  padding: 0 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: #080b14;
+
+  border-bottom: 1px solid #171b28;
+
+  position: relative;
+  z-index: 100;
+}
+
+
+/* =========================
+   BRAND
+========================= */
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  border: none;
+  background: transparent;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  color: white;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 2px solid #873cff;
+
+  color: #873cff;
+
+  font-family: Georgia, serif;
+
+  font-size: 17px;
+  font-weight: bold;
+
+  transform: skew(-8deg);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+
+  align-items: flex-start;
+}
+
+.brand-name {
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: 22px;
+
+  color: #f6f4fb;
+
+  line-height: 1;
+}
+
+.brand-tagline {
+  margin-top: 5px;
+
+  font-family: Georgia, serif;
+
+  font-size: 8px;
+
+  letter-spacing: 2px;
+
+  color: #7f879e;
+}
+
+
+/* =========================
+   LINKS
+========================= */
+
+.nav-links {
+  display: flex;
+  align-items: center;
+
+  gap: 32px;
+}
+
+.nav-links button {
+  border: none;
+
+  background: transparent;
+
+  color: #ddd9e8;
+
+  font-family: Georgia, serif;
+
+  font-size: 13px;
+
+  cursor: pointer;
+
+  padding: 8px 0;
+
+  transition:
+    color 0.2s ease;
+}
+
+.nav-links button:hover {
+  color: #9a5cff;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 800px) {
+
+  .navbar {
+    padding: 0 25px;
+  }
+
+  .nav-links {
+    gap: 15px;
+  }
+
+  .nav-links button {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 600px) {
+
+  .navbar {
+    height: auto;
+    min-height: 70px;
+
+    padding: 15px 20px;
+
+    flex-direction: column;
+
+    gap: 15px;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+.nav-auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-login,
+.nav-register {
+  padding: 9px 17px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.nav-login {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.nav-login:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-register {
+  color: #ffffff;
+  border: none;
+  background: linear-gradient(135deg, #833cff, #bc2fbc);
+  box-shadow: 0 5px 22px rgba(133, 54, 255, 0.25);
+}
+
+.nav-register:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(133, 54, 255, 0.4);
+}

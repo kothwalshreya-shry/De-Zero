@@ -1,0 +1,59 @@
+.dashboard-page {
+  min-height: 100vh;
+  background: #070713;
+  color: #ffffff;
+  padding: 120px 8%;
+}
+
+.dashboard-content {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.dashboard-eyebrow {
+  color: #a466ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+}
+
+.dashboard-content h1 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 56px;
+  line-height: 1.05;
+  font-weight: 500;
+}
+
+.dashboard-content h1 span {
+  display: block;
+  color: #a047ff;
+}
+
+.dashboard-description {
+  margin-top: 20px;
+  color: #888899;
+  font-size: 15px;
+}
+
+.dashboard-card {
+  margin-top: 50px;
+  padding: 30px;
+  border-radius: 18px;
+  background: linear-gradient(
+    145deg,
+    rgba(28, 25, 49, 0.9),
+    rgba(14, 13, 28, 0.94)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-card h2 {
+  font-family: "Space Grotesk", sans-serif;
+  margin-bottom: 12px;
+}
+
+.dashboard-card p {
+  color: #888899;
+  line-height: 1.7;
+}

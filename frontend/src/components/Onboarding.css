@@ -1,0 +1,691 @@
+/* =========================================================
+   DE ZÉRO — ONBOARDING
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+.onboarding-page {
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 40px 20px;
+
+  position: relative;
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle at 75% 15%,
+      rgba(132, 48, 255, 0.13),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 15% 80%,
+      rgba(217, 62, 167, 0.08),
+      transparent 30%
+    ),
+    #070611;
+
+  color: #f5f3fa;
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+
+/* =========================================================
+   BACKGROUND GLOW
+   ========================================================= */
+
+.onboarding-orb {
+  position: absolute;
+
+  border-radius: 50%;
+
+  pointer-events: none;
+
+  filter: blur(110px);
+}
+
+.onboarding-orb-one {
+  width: 380px;
+  height: 380px;
+
+  top: -220px;
+  right: -120px;
+
+  background: rgba(128, 54, 255, 0.14);
+}
+
+.onboarding-orb-two {
+  width: 320px;
+  height: 320px;
+
+  bottom: -180px;
+  left: -120px;
+
+  background: rgba(220, 54, 157, 0.08);
+}
+
+
+/* =========================================================
+   MAIN CONTAINER
+   ========================================================= */
+
+.onboarding-container {
+  width: min(720px, 94%);
+
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* =========================================================
+   BRAND
+   ========================================================= */
+
+.onboarding-brand {
+  display: flex;
+  align-items: center;
+
+  gap: 11px;
+
+  margin-bottom: 30px;
+}
+
+.onboarding-logo {
+  width: 38px;
+  height: 38px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #7b2cff,
+      #b83cff
+    );
+
+  color: white;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  box-shadow:
+    0 0 28px rgba(151, 57, 255, 0.28);
+}
+
+.onboarding-brand-name {
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: 17px;
+  font-weight: 600;
+
+  line-height: 1;
+}
+
+.onboarding-brand-tagline {
+  margin-top: 5px;
+
+  color: #746d83;
+
+  font-size: 7px;
+
+  letter-spacing: 2px;
+
+  text-transform: uppercase;
+}
+
+
+/* =========================================================
+   PROGRESS
+   ========================================================= */
+
+.onboarding-progress {
+  width: 100%;
+
+  margin-bottom: 15px;
+}
+
+.onboarding-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 9px;
+
+  color: #716b7d;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 2px;
+}
+
+.onboarding-progress-top span:last-child {
+  color: #a855f7;
+
+  letter-spacing: 0;
+}
+
+.onboarding-progress-bar {
+  width: 100%;
+  height: 3px;
+
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  overflow: hidden;
+}
+
+.onboarding-progress-fill {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background:
+    linear-gradient(
+      90deg,
+      #7c3aed,
+      #c447dc
+    );
+
+  box-shadow:
+    0 0 12px rgba(168, 85, 247, 0.4);
+
+  transition:
+    width 0.45s ease;
+}
+
+
+/* =========================================================
+   MAIN CARD
+   ========================================================= */
+
+.onboarding-card {
+  position: relative;
+
+  width: 100%;
+
+  padding: 42px;
+
+  border-radius: 22px;
+
+  border: 1px solid rgba(255, 255, 255, 0.075);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(28, 25, 48, 0.94),
+      rgba(13, 12, 26, 0.96)
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    0 35px 90px rgba(0, 0, 0, 0.42);
+
+  backdrop-filter: blur(22px);
+
+  overflow: hidden;
+}
+
+
+/* subtle purple line */
+
+.onboarding-card::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: 10%;
+
+  width: 80%;
+  height: 1px;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(168, 85, 247, 0.55),
+      transparent
+    );
+}
+
+
+/* =========================================================
+   STEP CONTENT
+   ========================================================= */
+
+.onboarding-step {
+  animation:
+    onboardingEnter 0.35s ease;
+}
+
+@keyframes onboardingEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* =========================================================
+   TEXT
+   ========================================================= */
+
+.onboarding-eyebrow {
+  margin: 0 0 14px;
+
+  color: #a855f7;
+
+  font-size: 9px;
+
+  font-weight: 700;
+
+  letter-spacing: 3px;
+
+  text-transform: uppercase;
+}
+
+.onboarding-step h1 {
+  margin: 0;
+
+  max-width: 600px;
+
+  color: #f5f3fa;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: clamp(38px, 5vw, 52px);
+
+  font-weight: 400;
+
+  line-height: 1.05;
+
+  letter-spacing: -2px;
+}
+
+.onboarding-step h1 span {
+  display: block;
+
+  margin-top: 4px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #a855f7,
+      #dc45b1
+    );
+
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  -webkit-text-fill-color: transparent;
+}
+
+.onboarding-description {
+  max-width: 520px;
+
+  margin: 17px 0 0;
+
+  color: #797386;
+
+  font-size: 13px;
+
+  line-height: 1.75;
+}
+
+
+/* =========================================================
+   OPTIONS — THE BIG UX CHANGE
+   ========================================================= */
+
+.onboarding-options {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 12px;
+
+  margin-top: 30px;
+}
+
+
+/* OPTION CARD */
+
+.onboarding-option {
+  min-height: 78px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 18px 19px;
+
+  border-radius: 13px;
+
+  border: 1px solid rgba(255, 255, 255, 0.075);
+
+  background:
+    rgba(255, 255, 255, 0.025);
+
+  color: #c5c0ce;
+
+  font-family: inherit;
+
+  font-size: 12px;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+/* HOVER */
+
+.onboarding-option:hover {
+  transform: translateY(-2px);
+
+  border-color:
+    rgba(168, 85, 247, 0.35);
+
+  background:
+    rgba(168, 85, 247, 0.075);
+
+  color: #ffffff;
+
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+
+/* ARROW */
+
+.option-arrow {
+  flex-shrink: 0;
+
+  color: #625c6d;
+
+  font-size: 17px;
+
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.onboarding-option:hover .option-arrow {
+  color: #a855f7;
+
+  transform: translateX(4px);
+}
+
+
+/* SELECTED */
+
+.onboarding-option.selected {
+  border-color:
+    rgba(168, 85, 247, 0.7);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(126, 58, 237, 0.18),
+      rgba(190, 54, 181, 0.09)
+    );
+
+  color: #ffffff;
+
+  box-shadow:
+    0 0 0 1px rgba(168, 85, 247, 0.08),
+    0 12px 35px rgba(117, 52, 190, 0.15);
+}
+
+.onboarding-option.selected .option-arrow {
+  color: #b66cff;
+
+  transform: translateX(4px);
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.onboarding-actions {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-top: 34px;
+
+  padding-top: 25px;
+
+  border-top:
+    1px solid rgba(255, 255, 255, 0.06);
+}
+
+
+/* BACK */
+
+.onboarding-back {
+  padding: 10px 0;
+
+  border: none;
+
+  background: transparent;
+
+  color: #716b7d;
+
+  font-family: inherit;
+
+  font-size: 11px;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease;
+}
+
+.onboarding-back:hover {
+  color: #ffffff;
+}
+
+
+/* CONTINUE */
+
+.onboarding-next {
+  min-width: 145px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  padding: 13px 19px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #8138ff,
+      #b735bd
+    );
+
+  color: #ffffff;
+
+  font-family: inherit;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 10px 30px rgba(128, 49, 255, 0.22);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.onboarding-next span {
+  font-size: 15px;
+
+  transition:
+    transform 0.2s ease;
+}
+
+.onboarding-next:hover:not(:disabled) {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 15px 35px rgba(128, 49, 255, 0.35);
+}
+
+.onboarding-next:hover:not(:disabled) span {
+  transform: translateX(4px);
+}
+
+
+/* DISABLED */
+
+.onboarding-next:disabled {
+  opacity: 0.35;
+
+  cursor: not-allowed;
+
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.onboarding-footer {
+  margin: 20px 0 0;
+
+  color: #403b49;
+
+  font-size: 9px;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 650px) {
+
+  .onboarding-page {
+    padding: 30px 15px;
+  }
+
+  .onboarding-container {
+    width: 100%;
+  }
+
+  .onboarding-brand {
+    margin-bottom: 22px;
+  }
+
+  .onboarding-card {
+    padding: 30px 22px;
+
+    border-radius: 18px;
+  }
+
+  .onboarding-step h1 {
+    font-size: 38px;
+
+    letter-spacing: -1.5px;
+  }
+
+  .onboarding-options {
+    grid-template-columns: 1fr;
+
+    gap: 10px;
+
+    margin-top: 25px;
+  }
+
+  .onboarding-option {
+    min-height: 66px;
+  }
+}
+
+
+@media (max-width: 420px) {
+
+  .onboarding-card {
+    padding: 25px 18px;
+  }
+
+  .onboarding-step h1 {
+    font-size: 34px;
+  }
+
+  .onboarding-description {
+    font-size: 12px;
+  }
+
+  .onboarding-actions {
+    margin-top: 25px;
+
+    padding-top: 20px;
+  }
+
+  .onboarding-next {
+    min-width: 125px;
+  }
+}
