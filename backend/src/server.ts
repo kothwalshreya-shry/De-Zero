@@ -185,6 +185,45 @@ app.get("/api/me", authenticateToken, (req: AuthRequest, res) => {
     user: req.user,
   });
 });
+app.get(
+  "/api/me/profile",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: {
+          id: req.user!.userId,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          currentLevel: true,
+          interests: true,
+          goal: true,
+          weeklyTime: true,
+          struggle: true,
+        },
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          error: "User not found",
+        });
+      }
+
+      res.json({
+        user,
+      });
+    } catch (error) {
+      console.error("Profile fetch error:", error);
+
+      res.status(500).json({
+        error: "Could not fetch profile",
+      });
+    }
+  }
+);
 app.put(
   "/api/me/onboarding",
   authenticateToken,
@@ -230,6 +269,69 @@ app.put(
 
       res.status(500).json({
         error: "Could not save onboarding data",
+      });
+    }
+  }
+);
+app.post(
+  "/api/progress",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const { minutes, completed } = req.body;
+
+      if (
+        typeof minutes !== "number" ||
+        minutes < 0
+      ) {
+        return res.status(400).json({
+          error: "Valid minutes are required",
+        });
+      }
+
+      const progress = await prisma.progress.create({
+        data: {
+          userId: req.user!.userId,
+          minutes,
+          completed: completed === true,
+        },
+      });
+
+      res.status(201).json({
+        message: "Progress saved successfully",
+        progress,
+      });
+    } catch (error) {
+      console.error("Progress save error:", error);
+
+      res.status(500).json({
+        error: "Could not save progress",
+      });
+    }
+  }
+);
+app.get(
+  "/api/progress",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const progress = await prisma.progress.findMany({
+        where: {
+          userId: req.user!.userId,
+        },
+        orderBy: {
+          date: "asc",
+        },
+      });
+
+      res.json({
+        progress,
+      });
+    } catch (error) {
+      console.error("Progress fetch error:", error);
+
+      res.status(500).json({
+        error: "Could not fetch progress",
       });
     }
   }
