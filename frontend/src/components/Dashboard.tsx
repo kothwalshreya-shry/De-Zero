@@ -19,19 +19,32 @@ type ProgressEntry = {
   completed: boolean;
 };
 
+type NavItem = {
+  label: string;
+  icon: string;
+  path?: string;
+};
+
+const navItems: NavItem[] = [
+  { label: "Dashboard", icon: "▦" },
+  { label: "Mission", icon: "✦", path: "/mission" },
+  { label: "Learn", icon: "▱", path: "/learn" },
+  { label: "Projects", icon: "</>", path: "/projects" },
+  { label: "Roadmap", icon: "◇", path: "/roadmap" },
+  { label: "AI Career", icon: "✧", path: "/chat" },
+  { label: "Progress", icon: "▥", path: "/progress" },
+  { label: "Resources", icon: "□", path: "/resources" },
+  { label: "Community", icon: "♧", path: "/community" },
+];
+
 function Dashboard() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [progress, setProgress] = useState<ProgressEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [missionLoading, setMissionLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-
-    if (!token) {
-      window.location.href = "/login";
-      return;
-    }
 
     const headers = {
       Authorization: `Bearer ${token}`,
@@ -68,90 +81,127 @@ function Dashboard() {
       });
   }, []);
 
-  const totalMinutes = useMemo(() => {
-    return progress.reduce((total, entry) => total + entry.minutes, 0);
-  }, [progress]);
+  const totalMinutes = useMemo(
+    () =>
+      progress.reduce(
+        (total, entry) => total + Number(entry.minutes || 0),
+        0
+      ),
+    [progress]
+  );
 
-  const completedSessions = useMemo(() => {
-    return progress.filter((entry) => entry.completed).length;
-  }, [progress]);
+  const completedSessions = useMemo(
+    () => progress.filter((entry) => entry.completed).length,
+    [progress]
+  );
 
   const totalHours = Math.floor(totalMinutes / 60);
   const remainingMinutes = totalMinutes % 60;
 
-  const weeklyMinutes = useMemo(() => {
-    const now = new Date();
+  const streak = useMemo(() => {
+    if (!progress.length) return 0;
 
-    return progress.reduce((total, entry) => {
-      const entryDate = new Date(entry.date);
+    const uniqueDays = new Set(
+      progress
+        .filter((entry) => entry.completed)
+        .map((entry) =>
+          new Date(entry.date).toISOString().split("T")[0]
+        )
+    );
 
-      const difference =
-        now.getTime() - entryDate.getTime();
+    let currentStreak = 0;
+    const today = new Date();
 
-      const days = difference / (1000 * 60 * 60 * 24);
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
 
-      if (days <= 7) {
-        return total + entry.minutes;
+      const key = date.toISOString().split("T")[0];
+
+      if (uniqueDays.has(key)) {
+        currentStreak++;
+      } else if (i === 0) {
+        continue;
+      } else {
+        break;
       }
-
-      return total;
-    }, 0);
-  }, [progress]);
-
-  const weeklyHours = Math.floor(weeklyMinutes / 60);
-  const weeklyRemainingMinutes = weeklyMinutes % 60;
-
-  const recentProgress = useMemo(() => {
-    return progress.slice(-7);
-  }, [progress]);
-
-  const maxMinutes = useMemo(() => {
-    if (recentProgress.length === 0) {
-      return 60;
     }
 
-    return Math.max(
-      60,
-      ...recentProgress.map((entry) => entry.minutes)
-    );
-  }, [recentProgress]);
+    return currentStreak;
+  }, [progress]);
 
-  const displayName =
-    user?.name?.split(" ")[0] || "Developer";
+  const lastSevenDays = useMemo(() => {
+    const days = [];
 
-  const interest =
-    user?.interests || "software development";
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() - i);
 
-  const level =
-    user?.currentLevel || "Starting out";
+      const key = date.toISOString().split("T")[0];
 
-  const goal =
-    user?.goal || "Build a strong developer career";
+      const minutes = progress
+        .filter(
+          (entry) =>
+            new Date(entry.date).toISOString().split("T")[0] === key
+        )
+        .reduce((sum, entry) => sum + Number(entry.minutes || 0), 0);
 
-  const weeklyTime =
-    user?.weeklyTime || "Not set";
+      days.push({
+        key,
+        label: date.toLocaleDateString("en-US", {
+          weekday: "short",
+        }),
+        minutes,
+      });
+    }
 
-  const struggle =
-    user?.struggle || "Keep building consistently";
+    return days;
+  }, [progress]);
 
-  const missionTitle = getMissionTitle(interest, level);
-
-  const missionDescription = getMissionDescription(
-    interest,
-    level
+  const maxMinutes = Math.max(
+    ...lastSevenDays.map((day) => day.minutes),
+    60
   );
 
-  const completeMission = async () => {
-    if (missionLoading) return;
+  const experience = user?.currentLevel?.toLowerCase() || "";
 
-    const token = localStorage.getItem("token");
+  const levelLabel = user?.currentLevel
+    ? user.currentLevel
+    : "Getting started";
 
-    if (!token) {
-      window.location.href = "/login";
-      return;
+  const interestLabel = user?.interests || "your chosen path";
+
+  const goalLabel = user?.goal || "your next big move";
+
+  const getMission = () => {
+    if (experience.includes("beginner") || experience.includes("basic")) {
+      return {
+        title: `Build your ${interestLabel} foundation.`,
+        description:
+          "One focused session. Learn one thing, then actually use it.",
+      };
     }
 
-    setMissionLoading(true);
+    if (user?.struggle) {
+      return {
+        title: "Turn that struggle into a strength.",
+        description:
+          "Spend 30 focused minutes working on the thing that keeps slowing you down.",
+      };
+    }
+
+    return {
+      title: "Build something small.",
+      description:
+        "30 focused minutes on something that moves your career forward.",
+    };
+  };
+
+  const mission = getMission();
+
+  const completeMission = async () => {
+    const token = localStorage.getItem("token");
 
     try {
       const response = await fetch(
@@ -175,813 +225,697 @@ function Dashboard() {
 
       const data = await response.json();
 
-      setProgress((currentProgress) => [
-        ...currentProgress,
+      setProgress((current) => [
+        ...current,
         data.progress,
       ]);
     } catch (error) {
-      console.error(
-        "Mission completion error:",
-        error
-      );
-    } finally {
-      setMissionLoading(false);
+      console.error("Mission completion error:", error);
     }
   };
 
-  const scrollToProgress = () => {
-    document
-      .getElementById("learning-progress")
-      ?.scrollIntoView({
-        behavior: "smooth",
-      });
-  };
-
-  const scrollToMission = () => {
-    document
-      .getElementById("today-mission")
-      ?.scrollIntoView({
-        behavior: "smooth",
-      });
+  const goTo = (path: string) => {
+    window.location.href = path;
   };
 
   if (loading) {
     return (
       <div className="dashboard-loading">
-        <div className="dashboard-loading-orb" />
-        <p>Building your dashboard...</p>
+        <div className="loading-orb" />
+        <p>Getting your workspace ready...</p>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-page">
-
-      {/* ================= SIDEBAR ================= */}
+    <div
+      className={`dashboard-shell ${
+        sidebarOpen ? "sidebar-expanded" : "sidebar-collapsed"
+      }`}
+    >
+      {/* SIDEBAR */}
 
       <aside className="dashboard-sidebar">
-
         <div className="brand">
-          <div className="brand-logo">
-            DZ
-          </div>
+          <div className="brand-mark">DZ</div>
 
-          <div>
+          <div className="brand-text">
             <strong>De Zéro</strong>
             <span>BEGIN. BUILD. BECOME.</span>
           </div>
         </div>
 
-        <div className="sidebar-section">
-          <span className="sidebar-title">
-            GENERAL
-          </span>
+        <button
+          className="sidebar-toggle"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle sidebar"
+        >
+          ☰
+        </button>
 
-          <button className="sidebar-link active">
-            <span>⌂</span>
-            Dashboard
-          </button>
+        <nav className="sidebar-nav">
+          {navItems.map((item, index) => (
+            <button
+              key={item.label}
+              className={`sidebar-item ${
+                index === 0 ? "active" : ""
+              }`}
+              onClick={() => item.path && goTo(item.path)}
+            >
+              <span className="sidebar-icon">{item.icon}</span>
 
-          <button
-            className="sidebar-link"
-            onClick={scrollToMission}
-          >
-            <span>✦</span>
-            Today's Mission
-          </button>
-
-          <button
-            className="sidebar-link"
-            onClick={scrollToProgress}
-          >
-            <span>◌</span>
-            Progress
-          </button>
-        </div>
-
-        <div className="sidebar-section">
-          <span className="sidebar-title">
-            CAREER
-          </span>
-
-          <button
-            className="sidebar-link"
-            onClick={() =>
-              (window.location.href = "/chat")
-            }
-          >
-            <span>✧</span>
-            AI Career
-          </button>
-
-          <button
-            className="sidebar-link"
-            onClick={() =>
-              (window.location.href = "/resume")
-            }
-          >
-            <span>▤</span>
-            Resume
-          </button>
-
-          <button
-            className="sidebar-link"
-            onClick={() =>
-              (window.location.href = "/interview")
-            }
-          >
-            <span>◎</span>
-            Interview
-          </button>
-        </div>
+              <span className="sidebar-label">
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </nav>
 
         <div className="sidebar-bottom">
+          <div className="upgrade-card">
+            <div className="upgrade-glow" />
+
+            <span className="upgrade-emoji">✦</span>
+
+            <h3>Level up faster.</h3>
+
+            <p>
+              More projects, smarter feedback & deeper career prep.
+            </p>
+
+            <button onClick={() => goTo("/ai-career")}>
+              Explore AI
+            </button>
+          </div>
+
           <div className="sidebar-user">
-            <div className="avatar">
-              {displayName.charAt(0).toUpperCase()}
+            <div className="user-avatar">
+              {user?.name?.charAt(0).toUpperCase() || "D"}
             </div>
 
-            <div>
-              <strong>{displayName}</strong>
-              <span>Student</span>
+            <div className="sidebar-user-info">
+              <strong>{user?.name || "Developer"}</strong>
+              <span>Keep building 🚀</span>
             </div>
+
+            <span className="user-chevron">⌄</span>
           </div>
         </div>
-
       </aside>
 
-      {/* ================= MAIN ================= */}
+      {/* MAIN */}
 
       <main className="dashboard-main">
-
-        {/* TOP BAR */}
-
         <header className="dashboard-topbar">
-
           <div className="mobile-brand">
-            <div className="brand-logo">
-              DZ
-            </div>
-
+            <div className="brand-mark">DZ</div>
             <strong>De Zéro</strong>
           </div>
 
-          <div className="topbar-actions">
+          <button
+            className="mobile-menu"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            ☰
+          </button>
 
-            <button
-              className="topbar-icon"
-              aria-label="Search"
-            >
-              ⌕
-            </button>
-
-            <button
-              className="topbar-icon"
-              aria-label="Notifications"
-            >
-              ♢
-            </button>
-
-            <div className="topbar-avatar">
-              {displayName.charAt(0).toUpperCase()}
+          <div className="topbar-right">
+            <div className="dashboard-search">
+              <span>⌕</span>
+              <input placeholder="Search anything..." />
             </div>
 
-          </div>
+            <button className="icon-button">
+              ♧
+              <span className="notification-dot" />
+            </button>
 
+            <div className="top-avatar">
+              {user?.name?.charAt(0).toUpperCase() || "D"}
+            </div>
+          </div>
         </header>
 
-        <div className="dashboard-inner">
+        <div className="dashboard-container">
+          {/* HERO */}
 
-          {/* ================= WELCOME ================= */}
-
-          <section className="welcome-section">
-
+          <section className="dashboard-hero">
             <div>
-              <p className="dashboard-eyebrow">
-                YOUR DEVELOPER JOURNEY
+              <p className="hero-small">
+                Hey {user?.name || "there"}! 👋
               </p>
 
               <h1>
-                Good to see you,
-                <span>{displayName}.</span>
+                Let&apos;s make{" "}
+                <span>today</span>
+                <br />
+                count.
               </h1>
 
-              <p className="welcome-description">
-                Here's where you are today — and what
-                you can build next.
+              <p className="hero-description">
+                Consistency beats motivation. You&apos;ve got this.
               </p>
             </div>
 
-            <div className="journey-status">
-              <span className="status-dot" />
-              Journey active
-            </div>
+            {/* STREAK */}
 
-          </section>
-
-          {/* ================= TOP BENTO ================= */}
-
-          <section className="dashboard-bento">
-
-            {/* LEVEL CARD */}
-
-            <article className="bento-card level-card">
-
-              <div className="card-header">
+            <div className="streak-card">
+              <div className="streak-top">
+                <div className="streak-flame">🔥</div>
 
                 <div>
-                  <span className="card-label">
-                    CURRENT LEVEL
-                  </span>
+                  <strong>{streak}</strong>
+                  <span>Day streak</span>
                 </div>
-
-                <div className="card-symbol purple">
-                  ✦
-                </div>
-
               </div>
 
-              <div className="card-main-content">
+              <p>
+                {streak > 0
+                  ? "You’re on fire! Keep it alive 🔥"
+                  : "Your first streak starts today."}
+              </p>
 
-                <h2>{level}</h2>
-
-                <p>
-                  You're currently building your
-                  foundation in{" "}
-                  <strong>{interest}</strong>.
-                </p>
-
-              </div>
-
-              <div className="level-progress">
-
-                <div className="progress-track">
+              <div className="streak-chart">
+                {lastSevenDays.map((day) => (
                   <div
-                    className="progress-track-fill"
+                    className="streak-point"
+                    key={day.key}
                     style={{
-                      width:
-                        completedSessions > 0
-                          ? `${Math.min(
-                              20 +
-                                completedSessions *
-                                  8,
-                              100
-                            )}%`
-                          : "12%",
+                      height: `${Math.max(
+                        10,
+                        (day.minutes / maxMinutes) * 100
+                      )}%`,
                     }}
                   />
-                </div>
-
-                <div className="progress-meta">
-                  <span>
-                    {completedSessions} sessions
-                  </span>
-
-                  <span>
-                    Keep going
-                  </span>
-                </div>
-
+                ))}
               </div>
 
-            </article>
-
-            {/* GOAL CARD */}
-
-            <article className="bento-card goal-card">
-
-              <div className="card-header">
-
-                <span className="card-label">
-                  YOUR GOAL
-                </span>
-
-                <div className="card-symbol pink">
-                  ◇
-                </div>
-
+              <div className="streak-days">
+                {lastSevenDays.map((day) => (
+                  <span key={day.key}>{day.label[0]}</span>
+                ))}
               </div>
-
-              <div className="card-main-content">
-
-                <h2>{goal}</h2>
-
-                <p>
-                  Your learning path is shaped around
-                  getting you closer to this goal.
-                </p>
-
-              </div>
-
-              <button
-                className="text-action"
-                onClick={scrollToMission}
-              >
-                View your next step
-                <span>→</span>
-              </button>
-
-            </article>
-
+            </div>
           </section>
 
-          {/* ================= ANALYTICS ================= */}
+          {/* STATS */}
 
-          <section
-            className="analytics-grid"
-            id="learning-progress"
-          >
+          <section className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-icon purple">◷</div>
 
-            {/* GRAPH */}
+              <span>Focus Time</span>
 
-            <article className="bento-card activity-card">
+              <strong>
+                {totalHours}h {remainingMinutes}m
+              </strong>
 
-              <div className="card-header">
+              <small>Keep showing up ↗</small>
+            </div>
 
+            <div className="stat-card">
+              <div className="stat-icon pink">▣</div>
+
+              <span>Sessions</span>
+
+              <strong>{completedSessions}</strong>
+
+              <small>Completed so far ↗</small>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon purple">★</div>
+
+              <span>XP Earned</span>
+
+              <strong>{completedSessions * 120}</strong>
+
+              <small>Keep stacking ↗</small>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon pink">♛</div>
+
+              <span>Level</span>
+
+              <strong>
+                {experience.includes("advanced")
+                  ? "Lv. 4"
+                  : experience.includes("intermediate")
+                  ? "Lv. 3"
+                  : experience.includes("basic")
+                  ? "Lv. 2"
+                  : "Lv. 1"}
+              </strong>
+
+              <small>{levelLabel}</small>
+            </div>
+          </section>
+
+          {/* TOP CONTENT */}
+
+          <section className="dashboard-columns">
+            {/* MOMENTUM */}
+
+            <div className="dashboard-panel momentum-panel">
+              <div className="panel-header">
                 <div>
-                  <span className="card-label">
-                    LEARNING ACTIVITY
+                  <span className="panel-kicker">
+                    YOUR MOMENTUM
                   </span>
 
-                  <h2>
-                    Your momentum
-                  </h2>
+                  <h2>Showing up matters.</h2>
+
+                  <p>Last 7 days</p>
                 </div>
 
-                <div className="activity-total">
-                  <strong>
-                    {totalHours}h{" "}
-                    {remainingMinutes}m
-                  </strong>
-
-                  <span>
-                    total learning
-                  </span>
-                </div>
-
+                <span className="panel-badge">LIVE</span>
               </div>
 
-              <div className="chart-wrapper">
+              <div className="bar-chart">
+                <div className="chart-y">
+                  <span>120m</span>
+                  <span>90m</span>
+                  <span>60m</span>
+                  <span>30m</span>
+                  <span>0m</span>
+                </div>
 
-                {recentProgress.length === 0 ? (
+                <div className="bars-area">
+                  {lastSevenDays.map((day) => (
+                    <div className="bar-column" key={day.key}>
+                      <div className="bar-wrapper">
+                        <div
+                          className="learning-bar"
+                          style={{
+                            height: `${Math.max(
+                              5,
+                              (day.minutes / maxMinutes) * 100
+                            )}%`,
+                          }}
+                          title={`${day.minutes} minutes`}
+                        />
+                      </div>
 
-                  <div className="empty-chart">
-                    <div className="empty-chart-icon">
-                      ◌
+                      <span>{day.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* UP NEXT */}
+
+            <div className="dashboard-panel next-panel">
+              <div className="panel-header">
+                <div>
+                  <span className="panel-kicker">
+                    ✦ UP NEXT FOR YOU
+                  </span>
+
+                  <h2>Keep the momentum.</h2>
+                </div>
+
+                <button
+                  className="text-button"
+                  onClick={() => goTo("/roadmap")}
+                >
+                  View all →
+                </button>
+              </div>
+
+              <div className="next-learning">
+                <div className="tech-orb">✦</div>
+
+                <div className="next-learning-content">
+                  <h3>
+                    {interestLabel} — next step
+                  </h3>
+
+                  <p>
+                    Built around your current stage and where
+                    you&apos;re trying to go.
+                  </p>
+
+                  <div className="learning-progress">
+                    <div>
+                      <span />
                     </div>
 
                     <strong>
-                      Your graph starts here.
+                      {Math.min(
+                        95,
+                        completedSessions * 10 + 10
+                      )}
+                      %
                     </strong>
-
-                    <span>
-                      Complete your first mission
-                      to track your learning activity.
-                    </span>
                   </div>
 
-                ) : (
-
-                  <div className="bar-chart">
-
-                    {recentProgress.map(
-                      (entry) => {
-
-                        const height =
-                          Math.max(
-                            12,
-                            (entry.minutes /
-                              maxMinutes) *
-                              100
-                          );
-
-                        return (
-                          <div
-                            className="bar-column"
-                            key={entry.id}
-                          >
-
-                            <div className="bar-value">
-                              {entry.minutes}m
-                            </div>
-
-                            <div className="bar-area">
-
-                              <div
-                                className={`activity-bar ${
-                                  entry.completed
-                                    ? "completed"
-                                    : ""
-                                }`}
-                                style={{
-                                  height: `${height}%`,
-                                }}
-                              />
-
-                            </div>
-
-                            <span>
-                              {new Date(
-                                entry.date
-                              ).toLocaleDateString(
-                                "en-US",
-                                {
-                                  weekday: "short",
-                                }
-                              )}
-                            </span>
-
-                          </div>
-                        );
-                      }
-                    )}
-
-                  </div>
-                )}
-
-              </div>
-
-            </article>
-
-            {/* WEEKLY STATS */}
-
-            <article className="bento-card stats-card">
-
-              <div className="card-header">
-
-                <span className="card-label">
-                  THIS WEEK
-                </span>
-
-                <div className="card-symbol pink">
-                  ♡
+                  <button
+                    className="outline-button"
+                    onClick={() => goTo("/learn")}
+                  >
+                    Continue learning
+                  </button>
                 </div>
-
               </div>
+            </div>
 
-              <div className="weekly-number">
-                {weeklyHours}
-                <span>h</span>
-                {weeklyRemainingMinutes}
-                <small>m</small>
-              </div>
+            {/* MISSION */}
 
-              <p>
-                Learning time this week
-              </p>
+            <div className="dashboard-panel mission-panel">
+              <div className="mission-decoration">✦</div>
 
-              <div className="stat-divider" />
-
-              <div className="stat-row">
-
+              <div className="panel-header">
                 <div>
-                  <strong>
-                    {completedSessions}
-                  </strong>
-
-                  <span>
-                    completed
+                  <span className="panel-kicker">
+                    🎯 TODAY&apos;S MISSION
                   </span>
                 </div>
-
-                <div>
-                  <strong>
-                    {progress.length}
-                  </strong>
-
-                  <span>
-                    sessions
-                  </span>
-                </div>
-
               </div>
 
-              <button
-                className="outline-button"
-                onClick={scrollToProgress}
-              >
-                See progress
-                <span>→</span>
-              </button>
+              <h2>{mission.title}</h2>
 
-            </article>
+              <p>{mission.description}</p>
 
-          </section>
-
-          {/* ================= TIME + FOCUS ================= */}
-
-          <section className="secondary-grid">
-
-            <article className="bento-card focus-card">
-
-              <div className="card-header">
-
-                <span className="card-label">
-                  YOUR FOCUS
-                </span>
-
-                <span className="pink-badge">
-                  PERSONALIZED
-                </span>
-
-              </div>
-
-              <h2>
-                Build your{" "}
-                <span>{interest}</span>{" "}
-                foundation.
-              </h2>
-
-              <p>
-                Based on your current level and
-                interests, your next steps should focus
-                on practical skills rather than trying to
-                learn everything at once.
-              </p>
-
-              <div className="focus-path">
-
+              <div className="mission-meta">
+                <span>30 mins focused work</span>
                 <span>
-                  {level}
+                  {Math.min(
+                    30,
+                    progress.length
+                      ? progress[progress.length - 1].minutes
+                      : 0
+                  )}
+                  /30 mins
                 </span>
-
-                <div className="path-line" />
-
-                <span className="path-highlight">
-                  {interest}
-                </span>
-
-                <div className="path-line" />
-
-                <span>
-                  Job-ready
-                </span>
-
               </div>
 
-            </article>
-
-            <article className="bento-card time-card">
-
-              <div className="card-header">
-
-                <span className="card-label">
-                  YOUR TIME
-                </span>
-
-                <div className="card-symbol purple">
-                  ◷
-                </div>
-
-              </div>
-
-              <div className="time-value">
-                {weeklyTime}
-              </div>
-
-              <p>
-                Your planned weekly learning
-                commitment.
-              </p>
-
-              <div className="week-dots">
-
-                {[0, 1, 2, 3, 4, 5, 6].map(
-                  (day) => (
-                    <span
-                      key={day}
-                      className={
-                        day <
-                        Math.min(
-                          completedSessions,
-                          7
-                        )
-                          ? "active"
-                          : ""
-                      }
-                    />
-                  )
-                )}
-
-              </div>
-
-            </article>
-
-          </section>
-
-          {/* ================= MISSION ================= */}
-
-          <section
-            className="mission-card"
-            id="today-mission"
-          >
-
-            <div className="mission-glow" />
-
-            <div className="mission-content">
-
-              <div className="mission-icon">
-                ✦
-              </div>
-
-              <div className="mission-text">
-
-                <span className="card-label">
-                  TODAY'S MISSION
-                </span>
-
-                <h2>
-                  {missionTitle}
-                </h2>
-
-                <p>
-                  {missionDescription}
-                </p>
-
-                <div className="mission-meta">
-
-                  <span>
-                    <b>30 min</b> estimated
-                  </span>
-
-                  <span>
-                    {interest}
-                  </span>
-
-                </div>
-
+              <div className="mission-progress">
+                <span
+                  style={{
+                    width: `${
+                      Math.min(
+                        30,
+                        progress.length
+                          ? progress[progress.length - 1].minutes
+                          : 0
+                      ) * 3.333
+                    }%`,
+                  }}
+                />
               </div>
 
               <button
                 className="mission-button"
                 onClick={completeMission}
-                disabled={missionLoading}
               >
-                {missionLoading
-                  ? "Saving..."
-                  : "Complete mission"}
-                <span>→</span>
+                ▶ Complete mission
               </button>
-
             </div>
 
-          </section>
+            {/* SCHEDULE */}
 
-          {/* ================= PROFILE ================= */}
+            <div className="dashboard-panel schedule-panel">
+              <div className="panel-header">
+                <div>
+                  <span className="panel-kicker">
+                    YOUR FLOW
+                  </span>
 
-          <section className="profile-section">
+                  <h2>Today&apos;s rhythm.</h2>
+                </div>
 
-            <div className="section-heading">
+                <button
+                  className="text-button"
+                  onClick={() => goTo("/progress")}
+                >
+                  See all →
+                </button>
+              </div>
 
-              <div>
-                <span className="dashboard-eyebrow">
-                  YOUR FOUNDATION
+              <div className="schedule-list">
+                <div className="schedule-item">
+                  <span className="schedule-time">NOW</span>
+
+                  <div>
+                    <strong>Focused learning</strong>
+                    <small>30 min session</small>
+                  </div>
+
+                  <i />
+                </div>
+
+                <div className="schedule-item">
+                  <span className="schedule-time">NEXT</span>
+
+                  <div>
+                    <strong>Build something</strong>
+                    <small>Turn knowledge into proof</small>
+                  </div>
+
+                  <i />
+                </div>
+
+                <div className="schedule-item">
+                  <span className="schedule-time">LATER</span>
+
+                  <div>
+                    <strong>AI Career Chat</strong>
+                    <small>Ask what to do next</small>
+                  </div>
+
+                  <i />
+                </div>
+              </div>
+            </div>
+
+            {/* SKILL RADAR */}
+
+            <div className="dashboard-panel radar-panel">
+              <div className="panel-header">
+                <div>
+                  <span className="panel-kicker">
+                    YOUR SKILL SNAPSHOT
+                  </span>
+
+                  <h2>Growing, not guessing.</h2>
+                </div>
+              </div>
+
+              <div className="radar-wrapper">
+                <svg
+                  className="radar-svg"
+                  viewBox="0 0 300 260"
+                >
+                  <polygon
+                    points="150,25 250,95 212,215 88,215 50,95"
+                    className="radar-grid"
+                  />
+
+                  <polygon
+                    points="150,55 218,103 190,185 110,185 82,103"
+                    className="radar-grid"
+                  />
+
+                  <polygon
+                    points="150,85 186,111 170,155 130,155 114,111"
+                    className="radar-grid"
+                  />
+
+                  <line
+                    x1="150"
+                    y1="25"
+                    x2="150"
+                    y2="215"
+                    className="radar-line"
+                  />
+
+                  <line
+                    x1="50"
+                    y1="95"
+                    x2="212"
+                    y2="215"
+                    className="radar-line"
+                  />
+
+                  <line
+                    x1="250"
+                    y1="95"
+                    x2="88"
+                    y2="215"
+                    className="radar-line"
+                  />
+
+                  <polygon
+                    points="150,62 210,105 180,175 115,185 80,105"
+                    className="radar-data"
+                  />
+
+                  <circle
+                    cx="150"
+                    cy="62"
+                    r="5"
+                    className="radar-point"
+                  />
+
+                  <circle
+                    cx="210"
+                    cy="105"
+                    r="5"
+                    className="radar-point"
+                  />
+
+                  <circle
+                    cx="180"
+                    cy="175"
+                    r="5"
+                    className="radar-point"
+                  />
+
+                  <circle
+                    cx="115"
+                    cy="185"
+                    r="5"
+                    className="radar-point"
+                  />
+
+                  <circle
+                    cx="80"
+                    cy="105"
+                    r="5"
+                    className="radar-point"
+                  />
+
+                  <text x="142" y="15">
+                    BUILD
+                  </text>
+
+                  <text x="250" y="88">
+                    CODE
+                  </text>
+
+                  <text x="210" y="235">
+                    PROJECTS
+                  </text>
+
+                  <text x="35" y="235">
+                    DSA
+                  </text>
+
+                  <text x="25" y="88">
+                    CAREER
+                  </text>
+                </svg>
+              </div>
+
+              <div className="radar-legend">
+                <span>
+                  <i />
+                  You
                 </span>
 
-                <h2>
-                  What we're building around you.
-                </h2>
+                <span>
+                  <i />
+                  Keep growing
+                </span>
               </div>
+            </div>
+
+            {/* KEEP IN MIND */}
+
+            <div className="dashboard-panel quote-panel">
+              <div className="quote-symbol">“</div>
+
+              <span className="panel-kicker">
+                KEEP IN MIND
+              </span>
 
               <p>
-                Your onboarding answers shape the
-                recommendations you see throughout
-                De Zéro.
+                Your future isn&apos;t built in one giant leap.
+                It&apos;s built in the tiny things you actually
+                finish.
               </p>
 
+              <small>
+                — one session at a time.
+              </small>
             </div>
 
-            <div className="profile-grid">
+            {/* QUICK ACTIONS */}
 
-              <div className="profile-item">
-                <span>LEVEL</span>
-                <strong>{level}</strong>
+            <div className="dashboard-panel quick-panel">
+              <div className="panel-header">
+                <div>
+                  <span className="panel-kicker">
+                    QUICK ACTIONS
+                  </span>
+
+                  <h2>What are we doing?</h2>
+                </div>
               </div>
 
-              <div className="profile-item">
-                <span>INTEREST</span>
-                <strong>{interest}</strong>
-              </div>
+              <div className="quick-grid">
+                <button onClick={() => goTo("/chat")}>
+                  <span>☏</span>
+                  <strong>AI Career Chat</strong>
+                </button>
 
-              <div className="profile-item">
-                <span>GOAL</span>
-                <strong>{goal}</strong>
-              </div>
+                <button onClick={() => goTo("/roadmap")}>
+                  <span>◇</span>
+                  <strong>Explore Roadmap</strong>
+                </button>
 
-              <div className="profile-item">
-                <span>STRUGGLE</span>
-                <strong>{struggle}</strong>
-              </div>
+                <button onClick={() => goTo("/projects")}>
+                  <span>&lt;/&gt;</span>
+                  <strong>Find Projects</strong>
+                </button>
 
+                <button onClick={() => goTo("/progress")}>
+                  <span>▥</span>
+                  <strong>View Progress</strong>
+                </button>
+              </div>
             </div>
 
+            {/* GOAL CARD */}
+
+            <div className="dashboard-panel goal-mini-panel">
+              <div>
+                <span className="panel-kicker">
+                  THE BIGGER PICTURE
+                </span>
+
+                <h2>We&apos;re heading somewhere.</h2>
+
+                <p>
+                  Everything you do here is moving toward{" "}
+                  <strong>{goalLabel}</strong>.
+                </p>
+              </div>
+
+              <div className="goal-ring">
+                <span>
+                  {Math.min(
+                    100,
+                    completedSessions * 8
+                  )}
+                  %
+                </span>
+              </div>
+            </div>
           </section>
 
+          {/* FOOTER MESSAGE */}
+
+          <div className="dashboard-footer-message">
+            <span>✦</span>
+            Small steps today. Big changes tomorrow.
+          </div>
         </div>
-
       </main>
-
     </div>
   );
-}
-
-/* ================================
-   PERSONALIZATION HELPERS
-================================ */
-
-function getMissionTitle(
-  interest: string,
-  level: string
-) {
-  const normalizedInterest =
-    interest.toLowerCase();
-
-  if (
-    normalizedInterest.includes("backend")
-  ) {
-    return "Build your first API endpoint.";
-  }
-
-  if (
-    normalizedInterest.includes("frontend") ||
-    normalizedInterest.includes("web")
-  ) {
-    return "Build a polished frontend component.";
-  }
-
-  if (
-    normalizedInterest.includes("app") ||
-    normalizedInterest.includes("mobile")
-  ) {
-    return "Build a small app feature.";
-  }
-
-  if (
-    normalizedInterest.includes("data") ||
-    normalizedInterest.includes("python")
-  ) {
-    return "Work through a practical data problem.";
-  }
-
-  if (
-    normalizedInterest.includes("ai") ||
-    normalizedInterest.includes("machine")
-  ) {
-    return "Build a tiny AI-powered feature.";
-  }
-
-  if (
-    level.toLowerCase().includes("beginner") ||
-    level.toLowerCase().includes("basic")
-  ) {
-    return "Strengthen one developer fundamental.";
-  }
-
-  return "Build something small and useful.";
-}
-
-function getMissionDescription(
-  interest: string,
-  level: string
-) {
-  const normalizedInterest =
-    interest.toLowerCase();
-
-  if (
-    normalizedInterest.includes("backend")
-  ) {
-    return "Create a simple endpoint, understand what it does, and connect it to your application.";
-  }
-
-  if (
-    normalizedInterest.includes("frontend") ||
-    normalizedInterest.includes("web")
-  ) {
-    return "Take one concept you're learning and turn it into a working interface.";
-  }
-
-  if (
-    normalizedInterest.includes("app") ||
-    normalizedInterest.includes("mobile")
-  ) {
-    return "Turn one idea into a small working feature instead of only watching another tutorial.";
-  }
-
-  if (
-    normalizedInterest.includes("ai") ||
-    normalizedInterest.includes("machine")
-  ) {
-    return "Experiment with one practical AI concept and make it part of a working project.";
-  }
-
-  if (
-    level.toLowerCase().includes("beginner") ||
-    level.toLowerCase().includes("basic")
-  ) {
-    return "Pick one fundamental concept and spend 30 focused minutes understanding and applying it.";
-  }
-
-  return "Spend 30 focused minutes building, experimenting, and moving your project forward.";
 }
 
 export default Dashboard;

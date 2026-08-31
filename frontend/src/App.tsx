@@ -7,7 +7,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-
+import Progress from "./components/Progress";
 import Onboarding from "./components/Onboardingg";
 import Profile from "./components/Profile";
 import Login from "./components/Login";
@@ -210,26 +210,7 @@ function App() {
         />
 
 
-        {/* PROGRESS */}
-        <Route
-          path="/progress"
-          element={
-            <ProtectedLayout
-              isLoggedIn={isLoggedIn}
-              onLogout={handleLogout}
-            >
-              <div
-                style={{
-                  color: "white",
-                  padding: "120px 60px",
-                }}
-              >
-                <h1>Progress</h1>
-                <p>Progress page coming soon.</p>
-              </div>
-            </ProtectedLayout>
-          }
-        />
+        <Route path="/progress" element={<Progress />} />
 
 
         {/* PROFILE */}

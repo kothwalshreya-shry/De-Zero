@@ -368,6 +368,71 @@ app.get(
     }
   }
 );
+app.get(
+  "/api/progress",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const progress = await prisma.progress.findMany({
+        where: {
+          userId: req.user!.userId,
+        },
+        orderBy: {
+          date: "asc",
+        },
+      });
+
+      res.json({
+        progress,
+      });
+    } catch (error) {
+      console.error("Progress fetch error:", error);
+
+      res.status(500).json({
+        error: "Could not fetch progress",
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/progress",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const { minutes, completed } = req.body;
+
+      if (
+        typeof minutes !== "number" ||
+        minutes < 0 ||
+        typeof completed !== "boolean"
+      ) {
+        return res.status(400).json({
+          error: "Invalid progress data",
+        });
+      }
+
+      const progress = await prisma.progress.create({
+        data: {
+          userId: req.user!.userId,
+          minutes,
+          completed,
+        },
+      });
+
+      res.status(201).json({
+        message: "Progress saved successfully",
+        progress,
+      });
+    } catch (error) {
+      console.error("Progress save error:", error);
+
+      res.status(500).json({
+        error: "Could not save progress",
+      });
+    }
+  }
+);
 app.listen(PORT, () => {
   console.log(`De Zero backend running on http://localhost:${PORT}`);
 });
