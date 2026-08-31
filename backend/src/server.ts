@@ -433,6 +433,64 @@ app.post(
     }
   }
 );
+app.get(
+  "/api/goals",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const goals = await prisma.dailyGoal.findMany({
+        where: {
+          userId: req.user!.userId,
+        },
+        orderBy: {
+          date: "desc",
+        },
+      });
+
+      res.json({ goals });
+    } catch (error) {
+      console.error("Goals fetch error:", error);
+
+      res.status(500).json({
+        error: "Could not fetch goals",
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/goals",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const { title, description, category, xp } = req.body;
+
+      if (!title) {
+        return res.status(400).json({
+          error: "Goal title is required",
+        });
+      }
+
+      const goal = await prisma.dailyGoal.create({
+        data: {
+          userId: req.user!.userId,
+          title,
+          description,
+          category,
+          xp: xp || 50,
+        },
+      });
+
+      res.status(201).json({ goal });
+    } catch (error) {
+      console.error("Goal creation error:", error);
+
+      res.status(500).json({
+        error: "Could not create goal",
+      });
+    }
+  }
+);
 app.listen(PORT, () => {
   console.log(`De Zero backend running on http://localhost:${PORT}`);
 });

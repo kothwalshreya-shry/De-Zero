@@ -14,45 +14,49 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  currentLevel  String?
-  interests     String?
-  goal          String?
-  weeklyTime    String?
-  struggle      String?
+  currentLevel String?
+  interests    String?
+  goal         String?
+  weeklyTime   String?
+  struggle     String?
 
-  conversations Conversation[]
-  progress      Progress[]
-  learningGoals LearningGoal[]
-  dsaProblems   DSAProblem[]
-  achievements  Achievement[]
+  conversations        Conversation[]
+  progress             Progress[]
+  goals                DailyGoal[]
+  achievements         UserAchievement[]
+  dsaActivity          DSAActivity[]
+  learningGoals        LearningGoal[]
+  dsaProblems          DSAProblem[]
+  unlockedAchievements Achievement[]
 }
 
 model Conversation {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   title     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userId    Int
-  user      User      @relation(fields: [userId], references: [id])
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
 
-  messages  Message[]
+  messages Message[]
 }
 
 model Message {
-  id             Int          @id @default(autoincrement())
-  role           String
-  content        String
-  createdAt      DateTime     @default(now())
+  id        Int      @id @default(autoincrement())
+  role      String
+  content   String
+  createdAt DateTime @default(now())
 
   conversationId Int
   conversation   Conversation @relation(fields: [conversationId], references: [id])
 }
-model Progress {
-  id        Int      @id @default(autoincrement())
 
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
+model Progress {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
 
   date      DateTime @default(now())
   minutes   Int      @default(0)
@@ -61,52 +65,102 @@ model Progress {
   @@index([userId, date])
 }
 
-model LearningGoal {
-  id          Int      @id @default(autoincrement())
+model DailyGoal {
+  id Int @id @default(autoincrement())
 
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id])
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  title       String
+  description String?
+  category    String?
+  xp          Int     @default(50)
+
+  date        DateTime  @default(now())
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  @@index([userId, date])
+}
+
+model UserAchievement {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  title       String
+  description String?
+  icon        String?
+  xp          Int     @default(100)
+
+  unlockedAt DateTime @default(now())
+
+  @@index([userId, unlockedAt])
+}
+
+model DSAActivity {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  date     DateTime @default(now())
+  problems Int      @default(0)
+
+  easy   Int @default(0)
+  medium Int @default(0)
+  hard   Int @default(0)
+
+  @@index([userId, date])
+}
+
+model LearningGoal {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
 
   title       String
   description String?
   date        DateTime @default(now())
 
-  completed   Boolean  @default(false)
+  completed   Boolean   @default(false)
   completedAt DateTime?
 
   @@index([userId, date])
 }
 
 model DSAProblem {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id])
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
 
-  title       String
-  platform    String?
-  topic       String?
-  difficulty  String?
+  title      String
+  platform   String?
+  topic      String?
+  difficulty String?
 
-  solved      Boolean  @default(false)
-  solvedAt    DateTime?
+  solved   Boolean   @default(false)
+  solvedAt DateTime?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
 }
 
 model Achievement {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id])
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
 
   title       String
   description String
   icon        String?
 
-  unlockedAt  DateTime @default(now())
+  unlockedAt DateTime @default(now())
 
   @@index([userId, unlockedAt])
 }
