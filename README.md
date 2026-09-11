@@ -163,3 +163,28 @@ WORKDIR /app
 COPY target/apartment-management.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","app.jar"]
+
+===============================================================================================
+git clone https://github.com/sarasrija/ApartmentManagementSystem.git
+cd ApartmentManagementSystem
+dir
+
+docker build -t apartmentapp-image .
+
+docker run -d --name apartment-app-container -p 8080:8080 apartmentapp-image
+
+docker ps
+docker ps -a
+
+docker exec -it apartment-app-container /bin/sh
+
+docker stop apartment-app-container
+docker start apartment-app-container
+
+docker commit <container-id> <your_dockerhub_username>/apartmentapp:v1
+
+docker login
+
+docker push <your_dockerhub_username>/apartmentapp:v1
+
+docker logout
