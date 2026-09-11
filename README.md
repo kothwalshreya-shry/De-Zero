@@ -51,3 +51,105 @@ clean install
 The goal is:
 
 BUILD SUCCESS
+
+
+
+
+
+=========================================================================================================
+
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <!-- Basic project information -->
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.apartment</groupId>
+    <artifactId>ApartmentManagementSystem</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <!-- Web application -->
+    <packaging>war</packaging>
+
+
+    <!-- ================= DEPENDENCIES ================= -->
+
+    <dependencies>
+
+        <!-- Servlet API -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>4.0.1</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- MySQL JDBC Driver -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+
+        <!-- JUnit -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+
+    <!-- ================= BUILD ================= -->
+
+    <build>
+
+        <!-- Name of generated WAR -->
+        <finalName>ApartmentMaintenanceSystem</finalName>
+
+
+        <!-- ================= PLUGIN MANAGEMENT ================= -->
+
+        <pluginManagement>
+
+            <plugins>
+
+                <plugin>
+                    <groupId>org.apache.tomcat.maven</groupId>
+                    <artifactId>tomcat7-maven-plugin</artifactId>
+                    <version>2.2</version>
+                </plugin>
+
+            </plugins>
+
+        </pluginManagement>
+
+
+        <!-- ================= ACTIVE PLUGINS ================= -->
+
+        <plugins>
+
+            <!-- Tomcat plugin -->
+            <plugin>
+                <groupId>org.apache.tomcat.maven</groupId>
+                <artifactId>tomcat7-maven-plugin</artifactId>
+                <version>2.2</version>
+
+                <configuration>
+                    <path>/</path>
+                    <port>8080</port>
+                </configuration>
+
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+</project>
