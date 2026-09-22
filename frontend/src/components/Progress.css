@@ -1068,6 +1068,78 @@
 
   cursor: pointer;
 }
+/* =========================================================
+   ROAD MILESTONE STATES
+========================================================= */
+
+.journey-node.milestone-active .node-circle {
+  box-shadow:
+    0 0 18px rgba(214, 71, 255, 0.55),
+    0 0 40px rgba(116, 64, 255, 0.28);
+}
+
+.journey-node.milestone-complete .node-circle {
+  border-color: #ff45c8;
+
+  background:
+    linear-gradient(
+      135deg,
+      #d936d1,
+      #7848ed
+    );
+
+  box-shadow:
+    0 0 20px rgba(255, 59, 200, 0.65),
+    0 0 50px rgba(133, 55, 255, 0.35);
+
+  color: white;
+}
+
+.journey-node.milestone-complete .node-label {
+  border-color: rgba(255, 64, 204, 0.45);
+
+  box-shadow:
+    0 0 24px rgba(218, 52, 208, 0.14);
+}
+
+.journey-node.milestone-unlocked .node-circle {
+  border-color: rgba(255, 74, 211, 0.75);
+
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      #a96cff,
+      #5c32ce
+    );
+
+  box-shadow:
+    0 0 20px rgba(255, 65, 210, 0.55),
+    0 0 55px rgba(118, 58, 255, 0.35);
+
+  animation: unlockedPulse 2.2s ease-in-out infinite;
+}
+
+.journey-node.milestone-unlocked .node-label {
+  border-color: rgba(223, 70, 255, 0.5);
+
+  box-shadow:
+    0 0 25px rgba(210, 57, 255, 0.18);
+}
+
+@keyframes unlockedPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgba(255, 65, 210, 0.45),
+      0 0 45px rgba(118, 58, 255, 0.25);
+  }
+
+  50% {
+    box-shadow:
+      0 0 30px rgba(255, 65, 210, 0.75),
+      0 0 65px rgba(118, 58, 255, 0.4);
+  }
+}
 
 .goal-icon {
   width: 36px;
@@ -2554,5 +2626,481 @@
 
   .heat-cell {
     border-radius: 1px;
+  }
+}
+/* =========================================================
+   ADD GOAL BUTTON
+========================================================= */
+
+.add-goal-button {
+  border: 1px solid rgba(211, 74, 255, 0.45);
+  background: rgba(132, 54, 188, 0.12);
+  color: #f7efff;
+
+  padding: 10px 17px;
+  border-radius: 12px;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+.add-goal-button:hover {
+  background: rgba(218, 53, 190, 0.18);
+  border-color: rgba(235, 77, 255, 0.8);
+
+  box-shadow:
+    0 0 20px rgba(213, 54, 255, 0.18);
+
+  transform: translateY(-1px);
+}
+
+.add-goal-button:active {
+  transform: translateY(0);
+}
+
+
+/* =========================================================
+   GOAL MODAL OVERLAY
+========================================================= */
+
+.goal-modal-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background:
+    radial-gradient(
+      circle at 50% 40%,
+      rgba(126, 47, 190, 0.18),
+      transparent 45%
+    ),
+    rgba(5, 3, 18, 0.78);
+
+  backdrop-filter: blur(12px);
+
+  animation: goalOverlayIn 0.25s ease forwards;
+}
+
+
+/* =========================================================
+   GOAL MODAL
+========================================================= */
+
+.goal-modal {
+  position: relative;
+
+  width: min(460px, 100%);
+
+  padding: 32px;
+
+  border: 1px solid rgba(181, 91, 255, 0.32);
+  border-radius: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(28, 15, 48, 0.96),
+      rgba(10, 7, 26, 0.98)
+    );
+
+  box-shadow:
+    0 30px 100px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(153, 54, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  animation: goalModalIn 0.3s cubic-bezier(.2,.8,.2,1);
+}
+
+
+/* =========================================================
+   CLOSE BUTTON
+========================================================= */
+
+.goal-modal-close {
+  position: absolute;
+
+  top: 17px;
+  right: 18px;
+
+  width: 34px;
+  height: 34px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.035);
+
+  color: rgba(255, 255, 255, 0.65);
+
+  font-size: 22px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.goal-modal-close:hover {
+  background: rgba(255, 56, 198, 0.14);
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+
+/* =========================================================
+   MODAL ICON
+========================================================= */
+
+.goal-modal-icon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 18px;
+
+  border-radius: 14px;
+
+  border: 1px solid rgba(224, 68, 255, 0.35);
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(224, 68, 255, 0.2),
+      rgba(116, 45, 182, 0.08)
+    );
+
+  color: #f04dff;
+
+  font-size: 21px;
+
+  box-shadow:
+    0 0 28px rgba(224, 68, 255, 0.12);
+}
+
+
+/* =========================================================
+   MODAL HEADING
+========================================================= */
+
+.goal-modal-heading {
+  margin-bottom: 28px;
+}
+
+.goal-modal-heading > span {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #e344ff;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.goal-modal-heading h2 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.goal-modal-heading p {
+  margin: 8px 0 0;
+
+  color: rgba(230, 220, 241, 0.55);
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   FORM FIELDS
+========================================================= */
+
+.goal-form-field {
+  margin-bottom: 19px;
+}
+
+.goal-form-field label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-bottom: 8px;
+
+  color: rgba(255, 255, 255, 0.8);
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.goal-form-field label span {
+  color: rgba(255, 255, 255, 0.32);
+
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.goal-form-field input,
+.goal-form-field textarea {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  border: 1px solid rgba(166, 91, 235, 0.22);
+  border-radius: 12px;
+
+  outline: none;
+
+  background: rgba(255, 255, 255, 0.035);
+
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 13px;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.goal-form-field input {
+  height: 46px;
+  padding: 0 14px;
+}
+
+.goal-form-field textarea {
+  min-height: 82px;
+  padding: 13px 14px;
+
+  resize: vertical;
+}
+
+.goal-form-field input::placeholder,
+.goal-form-field textarea::placeholder {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.goal-form-field input:focus,
+.goal-form-field textarea:focus {
+  border-color: rgba(229, 63, 255, 0.65);
+
+  background: rgba(155, 63, 208, 0.07);
+
+  box-shadow:
+    0 0 0 3px rgba(221, 57, 255, 0.08),
+    0 0 24px rgba(221, 57, 255, 0.08);
+}
+
+
+/* =========================================================
+   XP PREVIEW
+========================================================= */
+
+.goal-xp-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin: 22px 0;
+
+  padding: 13px 14px;
+
+  border: 1px solid rgba(174, 92, 236, 0.14);
+  border-radius: 13px;
+
+  background: rgba(133, 56, 185, 0.06);
+}
+
+.goal-xp-preview > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 31px;
+  height: 31px;
+
+  border-radius: 9px;
+
+  background: rgba(224, 61, 255, 0.1);
+
+  color: #ec55ff;
+}
+
+.goal-xp-preview div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.goal-xp-preview strong {
+  color: #f5eaff;
+  font-size: 12px;
+}
+
+.goal-xp-preview small {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 10px;
+}
+
+
+/* =========================================================
+   MODAL ACTIONS
+========================================================= */
+
+.goal-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  margin-top: 25px;
+}
+
+.goal-cancel,
+.goal-create {
+  height: 42px;
+
+  padding: 0 17px;
+
+  border-radius: 11px;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.goal-cancel {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  background: rgba(255, 255, 255, 0.035);
+
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.goal-cancel:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+}
+
+.goal-create {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  border: 1px solid rgba(247, 68, 219, 0.55);
+
+  background:
+    linear-gradient(
+      135deg,
+      #d932cf,
+      #9b3ce9
+    );
+
+  color: #ffffff;
+
+  box-shadow:
+    0 8px 25px rgba(213, 48, 211, 0.2);
+}
+
+.goal-create:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 10px 30px rgba(213, 48, 211, 0.32);
+}
+
+.goal-create:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+
+@keyframes goalOverlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes goalModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+  .goal-modal {
+    padding: 25px 20px;
+    border-radius: 20px;
+  }
+
+  .goal-modal-heading h2 {
+    font-size: 24px;
+  }
+
+  .goal-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .goal-cancel,
+  .goal-create {
+    width: 100%;
+    justify-content: center;
   }
 }

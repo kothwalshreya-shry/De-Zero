@@ -463,8 +463,13 @@ app.post(
   authenticateToken,
   async (req: AuthRequest, res) => {
     try {
-      const { title, description, category, xp } = req.body;
-
+      const {
+  title,
+  description,
+  category,
+  xp,
+  milestone,
+} = req.body;
       if (!title) {
         return res.status(400).json({
           error: "Goal title is required",
@@ -475,8 +480,9 @@ app.post(
         data: {
           userId: req.user!.userId,
           title,
-          description,
-          category,
+          description: description || null,
+  category: category || null,
+          milestone: milestone || 3,
           xp: xp || 50,
         },
       });
@@ -487,6 +493,143 @@ app.post(
 
       res.status(500).json({
         error: "Could not create goal",
+      });
+    }
+  }
+);
+app.post(
+  "/api/goals",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const { title, description, category, xp } = req.body;
+
+      if (!title) {
+        return res.status(400).json({
+          error: "Title is required",
+        });
+      }
+
+      const goal = await prisma.dailyGoal.create({
+        data: {
+          userId: req.user!.userId,
+          title,
+          description: description || null,
+          category: category || null,
+          xp: xp || 50,
+        },
+      });
+
+      res.status(201).json({ goal });
+    } catch (error) {
+      console.error("Goal creation error:", error);
+
+      res.status(500).json({
+        error: "Could not create goal",
+      });
+    }
+  }
+);
+app.get(
+  "/api/goals",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const goals = await prisma.dailyGoal.findMany({
+        where: {
+          userId: req.user!.userId,
+        },
+        orderBy: {
+          date: "desc",
+        },
+      });
+
+      res.json({ goals });
+    } catch (error) {
+      console.error("Goals fetch error:", error);
+
+      res.status(500).json({
+        error: "Could not fetch goals",
+      });
+    }
+  }
+);
+app.put(
+  "/api/goals/:id/complete",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const goalId = Number(req.params.id);
+
+      const existingGoal = await prisma.dailyGoal.findFirst({
+        where: {
+          id: goalId,
+          userId: req.user!.userId,
+        },
+      });
+
+      if (!existingGoal) {
+        return res.status(404).json({
+          error: "Goal not found",
+        });
+      }
+
+      const completed = !existingGoal.completed;
+
+      const goal = await prisma.dailyGoal.update({
+        where: {
+          id: goalId,
+        },
+        data: {
+          completed,
+          completedAt: completed ? new Date() : null,
+        },
+      });
+
+      res.json({ goal });
+    } catch (error) {
+      console.error("Goal completion error:", error);
+
+      res.status(500).json({
+        error: "Could not update goal",
+      });
+    }
+  }
+);
+app.delete(
+  "/api/goals/:id",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const goalId = Number(req.params.id);
+
+      const existingGoal = await prisma.dailyGoal.findFirst({
+        where: {
+          id: goalId,
+          userId: req.user!.userId,
+        },
+      });
+
+      if (!existingGoal) {
+        return res.status(404).json({
+          error: "Goal not found",
+        });
+      }
+
+      await prisma.dailyGoal.delete({
+        where: {
+          id: goalId,
+        },
+      });
+
+      res.json({
+        message: "Goal deleted",
+      });
+    } catch (error) {
+      console.error("Goal deletion error:", error);
+
+      res.status(500).json({
+        error: "Could not delete goal",
       });
     }
   }

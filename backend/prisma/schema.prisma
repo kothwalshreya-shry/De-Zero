@@ -67,6 +67,7 @@ model Progress {
 
 model DailyGoal {
   id Int @id @default(autoincrement())
+  milestone Int @default(1)
 
   userId Int
   user   User @relation(fields: [userId], references: [id])
