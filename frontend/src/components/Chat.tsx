@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import "./Chat.css";
 type Message = {
   role: "user" | "assistant";
@@ -185,10 +186,10 @@ function Chat() {
                       msg.role === "user"
                         ? "user-bubble"
                         : "assistant-bubble"
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
+                      }`}
+                    >
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
 
                 </div>
 
