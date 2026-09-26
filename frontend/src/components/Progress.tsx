@@ -7,12 +7,43 @@ type Goal = {
   description: string | null;
   category: string | null;
   xp: number;
-  milestone: number;
+  milestone?: number;
   date: string;
   completed: boolean;
   completedAt: string | null;
   icon?: string;
   subtitle?: string;
+};
+
+type ProgressStats = {
+  totalXP: number;
+  level: number;
+  nextLevelXP: number;
+  completedGoals: number;
+  totalGoals: number;
+  streak?: number;
+};
+
+type DSAProblem = {
+  id: number;
+  title?: string;
+  difficulty: string;
+  topic?: string | null;
+  solved: boolean;
+  solvedAt?: string | null;
+};
+
+type DSAActivity = {
+  date: string;
+  count: number;
+};
+
+type DSAStats = {
+  solved: number;
+  easy: number;
+  medium: number;
+  hard: number;
+  activity: DSAActivity[];
 };
 
 type Achievement = {
@@ -21,7 +52,9 @@ type Achievement = {
   title: string;
   description: string;
   xp: number;
-  time: string;
+  time?: string;
+  earnedAt?: string;
+  earned?: boolean;
 };
 
 type LearningStep = {
@@ -29,81 +62,179 @@ type LearningStep = {
   icon: string;
   label: string;
   title: string;
+  description?: string;
   status: "current" | "next" | "locked" | "milestone";
   progress?: number;
 };
 
-const achievements: Achievement[] = [
-  {
-    id: 1,
-    icon: "💎",
-    title: "First Steps",
-    description: "Completed your first goal",
-    xp: 100,
-    time: "2 days ago",
-  },
-  {
-    id: 2,
-    icon: "🔥",
-    title: "7 Day Streak",
-    description: "Learning every single day!",
-    xp: 250,
-    time: "Yesterday",
-  },
-  {
-    id: 3,
-    icon: "🚀",
-    title: "DSA Starter",
-    description: "Solved 10 DSA problems",
-    xp: 300,
-    time: "3 days ago",
-  },
-];
+const API = "http://localhost:3000";
 
-const learningSteps: LearningStep[] = [
+const emptyDSA: DSAStats = {
+  solved: 0,
+  easy: 0,
+  medium: 0,
+  hard: 0,
+  activity: [],
+};
+
+const emptyStats: ProgressStats = {
+  totalXP: 0,
+  level: 1,
+  nextLevelXP: 250,
+  completedGoals: 0,
+  totalGoals: 0,
+  streak: 0,
+};
+
+const fallbackLearningPath: LearningStep[] = [
   {
     id: 1,
     icon: "</>",
     label: "Current",
-    title: "JavaScript Basics",
+    title: "Your next learning step",
+    description: "Your personalized plan will appear here.",
     status: "current",
-    progress: 60,
+    progress: 0,
   },
   {
     id: 2,
     icon: "ϟ",
     label: "Up Next",
-    title: "DOM & Events",
+    title: "Coming next",
     status: "next",
   },
   {
     id: 3,
     icon: "⚛",
     label: "After That",
-    title: "React Fundamentals",
+    title: "Future skill",
     status: "locked",
   },
   {
     id: 4,
     icon: "♛",
     label: "Milestone",
-    title: "Build Real Project",
+    title: "Your next milestone",
     status: "milestone",
   },
 ];
 
+function normalizeProgress(data: any) {
+  const stats: ProgressStats = {
+    ...emptyStats,
+    ...(data?.stats || {}),
+  };
+
+  const goals: Goal[] = Array.isArray(data?.goals)
+    ? data.goals
+    : [];
+
+  const rawDsa = data?.dsa || data?.dsaStats || {};
+  const dsa: DSAStats = {
+    solved: Number(rawDsa.solved ?? data?.dsaSolved ?? 0),
+    easy: Number(rawDsa.easy ?? 0),
+    medium: Number(rawDsa.medium ?? 0),
+    hard: Number(rawDsa.hard ?? 0),
+    activity: Array.isArray(rawDsa.activity)
+      ? rawDsa.activity
+      : [],
+  };
+
+  const achievements: Achievement[] = Array.isArray(
+    data?.achievements
+  )
+    ? data.achievements
+    : [];
+
+  const learningPath: LearningStep[] =
+    Array.isArray(data?.learningPath)
+      ? data.learningPath
+      : Array.isArray(data?.path)
+      ? data.path
+      : [];
+
+  return {
+    stats,
+    goals,
+    dsa,
+    achievements,
+    learningPath:
+      learningPath.length > 0
+        ? learningPath
+        : fallbackLearningPath,
+  };
+}
+
 function Progress() {
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [newGoalTitle, setNewGoalTitle] = useState("");
-  const [newGoalDescription, setNewGoalDescription] = useState("");
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [selectedYear, setSelectedYear] = useState("This Year");
+  const [newGoalDescription, setNewGoalDescription] =
+    useState("");
 
-  /*
-   * =========================================================
-   * GOALS
-   * =========================================================
-   */
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [progressStats, setProgressStats] =
+    useState<ProgressStats>(emptyStats);
+
+  const [dsa, setDsa] = useState<DSAStats>(emptyDSA);
+  const [achievements, setAchievements] =
+    useState<Achievement[]>([]);
+  const [learningSteps, setLearningSteps] =
+    useState<LearningStep[]>(fallbackLearningPath);
+
+  const [selectedYear, setSelectedYear] =
+    useState("This Year");
+
+  const [loading, setLoading] = useState(true);
+  const [goalSaving, setGoalSaving] = useState(false);
+  const [goalError, setGoalError] = useState("");
+  const [progressError, setProgressError] = useState("");
+
+  const token = localStorage.getItem("token");
+
+  const loadProgress = async () => {
+    if (!token) {
+      setProgressError("Please log in to view your progress.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setProgressError("");
+
+      const response = await fetch(
+        `${API}/api/progress`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Could not load progress");
+      }
+
+      const data = await response.json();
+      const normalized = normalizeProgress(data);
+
+      setProgressStats(normalized.stats);
+      setGoals(normalized.goals);
+      setDsa(normalized.dsa);
+      setAchievements(normalized.achievements);
+      setLearningSteps(normalized.learningPath);
+    } catch (error) {
+      console.error("Progress loading error:", error);
+      setProgressError(
+        "We couldn't load your progress right now."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProgress();
+  }, []);
 
   const completedGoals = goals.filter(
     (goal) => goal.completed
@@ -118,144 +249,72 @@ function Progress() {
           (completedGoals / totalGoals) * 100
         );
 
-  /*
-   * =========================================================
-   * ROADMAP
-   *
-   * The roadmap is currently a visual progress journey.
-   *
-   * It does NOT depend on manually selected milestones.
-   *
-   * Later, AI can personalize these stages.
-   * =========================================================
-   */
+  const levelProgress = useMemo(() => {
+    const levelStart =
+      Math.max(
+        0,
+        progressStats.nextLevelXP -
+          250
+      );
 
- const roadmapNodes = [
-  {
-    id: 1,
-    className: "node-one",
-  },
-  {
-    id: 2,
-    className: "node-two",
-  },
-  {
-    id: 3,
-    className: "node-three",
-  },
-  {
-    id: 4,
-    className: "node-four",
-  },
-  {
-    id: 6,
-    className: "node-six",
-  },
-];
+    const earnedInLevel = Math.max(
+      0,
+      progressStats.totalXP - levelStart
+    );
 
+    const required =
+      Math.max(
+        1,
+        progressStats.nextLevelXP -
+          levelStart
+      );
 
-  /*
-   * Number of roadmap checkpoints that are currently
-   * relevant to the amount of work the user has.
-   *
-   * Example:
-   *
-   * 0 goals → 0 active checkpoints
-   * 1 goal  → 1 active checkpoint
-   * 3 goals → 3 active checkpoints
-   * 5 goals → 5 active checkpoints
-   * 10 goals → all 5 checkpoints
-   */
+    return Math.min(
+      100,
+      Math.round(
+        (earnedInLevel / required) * 100
+      )
+    );
+  }, [progressStats]);
+
+  const roadmapNodes = [
+    { id: 1, className: "node-one" },
+    { id: 2, className: "node-two" },
+    { id: 3, className: "node-three" },
+    { id: 4, className: "node-four" },
+    { id: 6, className: "node-six" },
+  ];
+
   const activeCheckpointCount = Math.min(
     roadmapNodes.length,
     totalGoals
   );
 
-  /*
-   * Each completed goal moves the roadmap forward.
-   *
-   * Example with 4 goals:
-   *
-   * 1 completed → checkpoint 1 ✓
-   * 2 completed → checkpoint 1, 2 ✓
-   * 3 completed → checkpoint 1, 2, 3 ✓
-   * 4 completed → checkpoint 1, 2, 3, 4 ✓
-   */
+const isCheckpointComplete = (
+  checkpointIndex: number
+) => {
+  const goalIndex =
+    goals.length - checkpointIndex;
 
-  const isCheckpointComplete = (
-    checkpointIndex: number
-  ) => {
-    if (totalGoals === 0) {
-      return false;
-    }
-
-    if (
-      checkpointIndex >
-      activeCheckpointCount
-    ) {
-      return false;
-    }
-
-    const requiredCompleted = Math.ceil(
-      (checkpointIndex / activeCheckpointCount) *
-        totalGoals
-    );
-
-    return completedGoals >= requiredCompleted;
-  };
-
-  /*
-   * =========================================================
-   * LOAD GOALS
-   * =========================================================
-   */
-
-  useEffect(() => {
-    const loadGoals = async () => {
-      const token = localStorage.getItem("token");
-
-      try {
-        const response = await fetch(
-          "http://localhost:3000/api/goals",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to load goals");
-        }
-
-        const data = await response.json();
-
-        setGoals(data.goals);
-      } catch (error) {
-        console.error(
-          "Goals loading error:",
-          error
-        );
-      }
-    };
-
-    loadGoals();
-  }, []);
-
-  /*
-   * =========================================================
-   * ADD GOAL
-   * =========================================================
-   */
+  return goals[goalIndex]?.completed ?? false;
+};
 
   const addGoal = async () => {
-    if (!newGoalTitle.trim()) return;
+    if (!newGoalTitle.trim() || goalSaving) {
+      return;
+    }
 
-    const token = localStorage.getItem("token");
+    if (!token) {
+      setGoalError("Please log in first.");
+      return;
+    }
+
+    setGoalSaving(true);
+    setGoalError("");
 
     try {
       const response = await fetch(
-        "http://localhost:3000/api/goals",
+        `${API}/api/goals`,
         {
           method: "POST",
           headers: {
@@ -267,16 +326,6 @@ function Progress() {
             description:
               newGoalDescription.trim() || null,
             category: "learning",
-
-            /*
-             * Keeping this for the backend for now.
-             * The Progress page itself does NOT depend
-             * on this milestone.
-             *
-             * Later the AI can decide this value.
-             */
-            milestone: 3,
-
             xp: 50,
           }),
         }
@@ -290,34 +339,53 @@ function Progress() {
 
       const data = await response.json();
 
-      setGoals((currentGoals) => [
-        ...currentGoals,
-        data.goal,
-      ]);
+      if (data?.goal) {
+        setGoals((current) => [
+          ...current,
+          data.goal,
+        ]);
+      }
 
       setNewGoalTitle("");
       setNewGoalDescription("");
       setShowGoalForm(false);
+
+      await loadProgress();
     } catch (error) {
       console.error(
         "Goal creation error:",
         error
       );
+      setGoalError(
+        "Couldn't create that goal. Try again."
+      );
+    } finally {
+      setGoalSaving(false);
     }
   };
 
-  /*
-   * =========================================================
-   * COMPLETE / UNCOMPLETE GOAL
-   * =========================================================
-   */
-
   const toggleGoal = async (id: number) => {
-    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const previous = goals;
+
+    setGoals((current) =>
+      current.map((goal) =>
+        goal.id === id
+          ? {
+              ...goal,
+              completed: !goal.completed,
+              completedAt: !goal.completed
+                ? new Date().toISOString()
+                : null,
+            }
+          : goal
+      )
+    );
 
     try {
       const response = await fetch(
-        `http://localhost:3000/api/goals/${id}/complete`,
+        `${API}/api/goals/${id}/complete`,
         {
           method: "PUT",
           headers: {
@@ -332,290 +400,219 @@ function Progress() {
         );
       }
 
-      const data = await response.json();
-
-      setGoals((currentGoals) =>
-        currentGoals.map((goal) =>
-          goal.id === id
-            ? data.goal
-            : goal
-        )
-      );
+      await loadProgress();
     } catch (error) {
       console.error(
         "Goal update error:",
         error
       );
+      setGoals(previous);
     }
   };
 
-  /*
-   * =========================================================
-   * FAKE CONTRIBUTION DATA FOR NOW
-   * =========================================================
-   */
+  const deleteGoal = async (
+    event: React.MouseEvent,
+    id: number
+  ) => {
+    event.stopPropagation();
 
-  const contributionData = useMemo(() => {
-    return Array.from(
-      { length: 24 },
-      (_, column) =>
-        Array.from(
-          { length: 7 },
-          (_, row) => {
-            const value =
-              (column * 7 +
-                row * 3 +
-                5) %
-              6;
+    if (!token) return;
 
-            return value;
-          }
-        )
+    const previous = goals;
+
+    setGoals((current) =>
+      current.filter((goal) => goal.id !== id)
     );
-  }, []);
+
+    try {
+      const response = await fetch(
+        `${API}/api/goals/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to delete goal"
+        );
+      }
+
+      await loadProgress();
+    } catch (error) {
+      console.error(
+        "Goal deletion error:",
+        error
+      );
+      setGoals(previous);
+    }
+  };
+
+const contributionData = useMemo(() => {
+  const year = new Date().getFullYear();
+
+  const start = new Date(year, 0, 1);
+  start.setDate(start.getDate() - start.getDay());
+
+  return Array.from({ length: 53 }, (_, weekIndex) => {
+    return Array.from({ length: 7 }, (_, dayIndex) => {
+      const date = new Date(start);
+
+      date.setDate(
+        start.getDate() +
+          weekIndex * 7 +
+          dayIndex
+      );
+
+      const dateKey = date.toISOString().slice(0, 10);
+
+      const count = goals.filter(
+        (goal) =>
+          goal.completed &&
+          goal.completedAt &&
+          new Date(goal.completedAt)
+            .toISOString()
+            .slice(0, 10) === dateKey
+      ).length;
+
+      return {
+        date,
+        count,
+      };
+    });
+  });
+}, [goals]);
+
+  const totalSolved =
+    dsa.solved ||
+    dsa.easy + dsa.medium + dsa.hard;
 
   return (
     <div className="progress-page">
-
-      {/* =========================================================
-          SIDEBAR
-      ========================================================== */}
-
       <aside className="progress-sidebar">
-
         <div className="sidebar-brand">
-
           <div className="brand-name">
             De Zéro
-            <span className="brand-spark">
-              ✦
-            </span>
+            <span className="brand-spark">✦</span>
           </div>
-
           <div className="brand-tagline">
             BEGIN. BUILD. BECOME.
           </div>
-
         </div>
 
         <nav className="sidebar-nav">
-
-          <a
-            href="/dashboard"
-            className="sidebar-link"
-          >
-            <span className="sidebar-icon">
-              ⌂
-            </span>
+          <a href="/dashboard" className="sidebar-link">
+            <span className="sidebar-icon">⌂</span>
             <span>Dashboard</span>
           </a>
-
-          <a
-            href="/roadmap"
-            className="sidebar-link"
-          >
-            <span className="sidebar-icon">
-              ♧
-            </span>
+          <a href="/roadmap" className="sidebar-link">
+            <span className="sidebar-icon">♧</span>
             <span>Roadmap</span>
           </a>
-
-          <a
-            href="/learn"
-            className="sidebar-link"
-          >
-            <span className="sidebar-icon">
-              ▣
-            </span>
+          <a href="/learn" className="sidebar-link">
+            <span className="sidebar-icon">▣</span>
             <span>Learn</span>
           </a>
-
-          <a
-            href="/projects"
-            className="sidebar-link"
-          >
-            <span className="sidebar-icon">
-              ⌘
-            </span>
+          <a href="/projects" className="sidebar-link">
+            <span className="sidebar-icon">⌘</span>
             <span>Projects</span>
           </a>
-
-          <a
-            href="/ai-career"
-            className="sidebar-link"
-          >
-            <span className="sidebar-icon">
-              ◎
-            </span>
+          <a href="/ai-career" className="sidebar-link">
+            <span className="sidebar-icon">◎</span>
             <span>AI Career</span>
           </a>
-
           <a
             href="/progress"
             className="sidebar-link active"
           >
-            <span className="sidebar-icon">
-              ♘
-            </span>
+            <span className="sidebar-icon">♘</span>
             <span>Progress</span>
           </a>
-
-          <a
-            href="/profile"
-            className="sidebar-link"
-          >
-            <span className="sidebar-icon">
-              ◯
-            </span>
+          <a href="/profile" className="sidebar-link">
+            <span className="sidebar-icon">◯</span>
             <span>Profile</span>
           </a>
-
         </nav>
 
-        {/* LEVEL */}
-
         <div className="level-widget">
-
-          <div className="level-icon">
-            ✦
-          </div>
-
+          <div className="level-icon">✦</div>
           <div className="level-number">
-            Lv. 12
+            Lv. {progressStats.level}
           </div>
-
           <div className="level-name">
             Explorer
           </div>
-
           <div className="xp-text">
-            2,480 / 3,000 XP
+            {progressStats.totalXP.toLocaleString()}{" "}
+            /{" "}
+            {progressStats.nextLevelXP.toLocaleString()}{" "}
+            XP
           </div>
-
           <div className="xp-track">
-
             <div
               className="xp-fill"
               style={{
-                width: "82%",
+                width: `${levelProgress}%`,
               }}
             />
-
           </div>
-
         </div>
-
       </aside>
 
-      {/* =========================================================
-          MAIN CONTENT
-      ========================================================== */}
-
       <main className="progress-main">
-
-        {/* TOP BAR */}
-
         <header className="progress-topbar">
-
           <div className="mobile-brand">
-            De Zéro
-            <span>✦</span>
+            De Zéro <span>✦</span>
           </div>
 
-          <div className="topbar-actions">
-
-            <div className="mini-stat">
-
-              <span>🔥</span>
-
-              <div>
-                <strong>7</strong>
-                <small>
-                  Day Streak
-                </small>
-              </div>
-
-            </div>
-
-            <div className="mini-stat">
-
-              <span>♨</span>
-
-              <div>
-                <strong>
-                  2,840
-                </strong>
-
-                <small>
-                  Total XP
-                </small>
-              </div>
-
-            </div>
-
-            <button className="notification-button">
-              ♧
-              <span />
-            </button>
-
-            <div className="avatar">
-              SK
-            </div>
-
-          </div>
-
+        
         </header>
 
-        {/* =========================================================
-            HERO
-        ========================================================== */}
+        {progressError && (
+          <div className="progress-alert">
+            <span>✦</span>
+            {progressError}
+            <button
+              type="button"
+              onClick={loadProgress}
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         <section className="progress-hero">
-
           <div className="hero-heading">
-
             <div className="hero-eyebrow">
-              Your Progress{" "}
-              <span>✣</span>
+              Your Progress <span>✣</span>
             </div>
 
             <h1>
               Every step
               <br />
-              builds your{" "}
-              <span>future.</span>
+              builds your <span>future.</span>
             </h1>
 
             <p>
               Track. Learn. Grow. Repeat.
             </p>
-
           </div>
-
-          {/* FLOATING PLANET */}
 
           <div className="planet">
-
             <div className="planet-ring" />
-
             <div className="planet-ball" />
-
           </div>
 
-          {/* =====================================================
-              ROADMAP
-          ====================================================== */}
-
           <div className="journey">
-
             <svg
               className="journey-road"
               viewBox="0 0 620 720"
               preserveAspectRatio="none"
             >
-
               <defs>
-
                 <linearGradient
                   id="roadGradient"
                   x1="0%"
@@ -623,121 +620,72 @@ function Progress() {
                   x2="100%"
                   y2="0%"
                 >
-                  <stop offset="0%" />
-                  <stop offset="45%" />
-                  <stop offset="100%" />
+                  <stop
+                    offset="0%"
+                    stopColor="#713cff"
+                  />
+                  <stop
+                    offset="45%"
+                    stopColor="#a66cff"
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="#ed329f"
+                  />
                 </linearGradient>
 
                 <filter id="roadGlow">
-
                   <feGaussianBlur
                     stdDeviation="12"
                     result="blur"
                   />
-
                   <feMerge>
-
                     <feMergeNode in="blur" />
-
-                    <feMergeNode
-                      in="SourceGraphic"
-                    />
-
+                    <feMergeNode in="SourceGraphic" />
                   </feMerge>
-
                 </filter>
-
               </defs>
 
-              {/* Glow */}
-
               <path
-                d="
-                  M 160 700
-                  C 160 600 520 610 450 500
-                  C 380 390 90 460 150 340
-                  C 220 200 560 290 470 150
-                  C 430 90 330 100 330 30
-                "
+                d="M 160 700 C 160 600 520 610 450 500 C 380 390 90 460 150 340 C 220 200 560 290 470 150 C 430 90 330 100 330 30"
                 className="road-glow"
               />
-
-              {/* Main road */}
-
               <path
-                d="
-                  M 160 700
-                  C 160 600 520 610 450 500
-                  C 380 390 90 460 150 340
-                  C 220 200 560 290 470 150
-                  C 430 90 330 100 330 30
-                "
+                d="M 160 700 C 160 600 520 610 450 500 C 380 390 90 460 150 340 C 220 200 560 290 470 150 C 430 90 330 100 330 30"
                 className="road-main"
               />
-
-              {/* Inner road */}
-
               <path
-                d="
-                  M 160 700
-                  C 160 600 520 610 450 500
-                  C 380 390 90 460 150 340
-                  C 220 200 560 290 470 150
-                  C 430 90 330 100 330 30
-                "
+                d="M 160 700 C 160 600 520 610 450 500 C 380 390 90 460 150 340 C 220 200 560 290 470 150 C 430 90 330 100 330 30"
                 className="road-inner"
               />
-
             </svg>
 
-            {/* STARS */}
-
-            <span className="journey-star star-one">
-              ✦
-            </span>
-
-            <span className="journey-star star-two">
-              ✦
-            </span>
-
-            <span className="journey-star star-three">
-              ✧
-            </span>
-
-            <span className="journey-star star-four">
-              ✦
-            </span>
-
-            {/* ROCKET */}
+            <span className="journey-star star-one">✦</span>
+            <span className="journey-star star-two">✦</span>
+            <span className="journey-star star-three">✧</span>
+            <span className="journey-star star-four">✦</span>
 
             <div className="rocket">
-
-              <div className="rocket-fire">
-                ≈
-              </div>
-
+              <div className="rocket-fire">≈</div>
               🚀
-
             </div>
-
-            {/* =====================================================
-                ROADMAP NODES
-            ====================================================== */}
 
             {roadmapNodes.map(
               (node, index) => {
-
                 const checkpointIndex =
                   index + 1;
 
-                const completed =
-                  isCheckpointComplete(
-                    checkpointIndex
-                  );
+                const goalIndex =
+  goals.length - checkpointIndex;
 
-                const active =
-                  checkpointIndex <=
-                  activeCheckpointCount;
+const completed =
+  goals[goalIndex]?.completed ?? false;
+
+const active =
+  goalIndex >= 0;
+
+                const pathStep =
+                  learningSteps[index];
 
                 return (
                   <div
@@ -752,570 +700,364 @@ function Progress() {
                         : "milestone-locked"
                     }`}
                   >
-
                     <div className="node-circle">
-
                       {completed
                         ? "✓"
-                        : node.id
-                      }
-
+                        : node.id}
                     </div>
 
                     <div className="node-label">
-
-                    <strong>
-  {goals[index]?.title || ""}
+                      <strong>
+  {goals[goals.length - 1 - index]?.title ||
+    "Next milestone"}
 </strong>
-
-<span>
-  {goals[index]
-    ? completed
-      ? "Completed"
-      : "In progress"
-    : ""}
-</span>
-
+                      <span>
+                        {completed
+                          ? "Completed"
+                          : active
+                          ? "In progress"
+                          : "Upcoming"}
+                      </span>
                     </div>
-
                   </div>
                 );
               }
             )}
 
-            {/* FINISH FLAG */}
-
             <div className="finish-flag">
-
               <div className="flag-stick" />
-
-              <div className="flag">
-                ⚑
-              </div>
-
+              <div className="flag">⚑</div>
             </div>
 
             <div className="tiny-person">
               👩🏻‍💻
             </div>
-
           </div>
 
-          {/* =====================================================
-              TODAY'S GOALS
-          ====================================================== */}
-
           <div className="goals-panel">
-
             <div className="goals-header">
-
               <div>
-
-                <h2>
-                  Today's Goals
-                </h2>
-
+                <h2>Today's Goals</h2>
                 <p>
                   {completedGoals} /{" "}
                   {totalGoals} completed
                 </p>
-
               </div>
 
               <button
                 className="add-goal-button"
-                onClick={() =>
-                  setShowGoalForm(true)
-                }
+                onClick={() => {
+                  setGoalError("");
+                  setShowGoalForm(true);
+                }}
+                type="button"
               >
                 + Add Goal
               </button>
-
             </div>
 
             <div className="goal-progress">
-
               <div className="goal-progress-bar">
-
                 <span
                   style={{
                     width: `${goalPercentage}%`,
                   }}
                 />
-
               </div>
-
-              <strong>
-                {goalPercentage}%
-              </strong>
-
+              <strong>{goalPercentage}%</strong>
             </div>
 
             <div className="goal-list">
-
-              {goals.map((goal) => (
-
-                <button
-                  key={goal.id}
-                  className={`goal-item ${
-                    goal.completed
-                      ? "completed"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    toggleGoal(goal.id)
-                  }
-                >
-
-                  <div className="goal-icon">
-                    {goal.icon || "✦"}
-                  </div>
-
-                  <div className="goal-copy">
-
-                    <strong>
-                      {goal.title}
-                    </strong>
-
-                    <span>
-                      {goal.subtitle ||
-                        goal.description ||
-                        "Keep moving forward."}
-                    </span>
-
-                  </div>
-
+              {loading ? (
+                <div className="goal-empty">
+                  <span>✦</span>
+                  Loading your goals...
+                </div>
+              ) : goals.length === 0 ? (
+                <div className="goal-empty">
+                  <span>✦</span>
+                  <strong>
+                    No goals yet.
+                  </strong>
+                  <small>
+                    Add your first goal and
+                    start building momentum.
+                  </small>
+                </div>
+              ) : (
+                goals.map((goal) => (
                   <div
-                    className={`goal-check ${
+                    key={goal.id}
+                    className={`goal-item ${
                       goal.completed
-                        ? "checked"
+                        ? "completed"
                         : ""
                     }`}
                   >
-                    {goal.completed
-                      ? "✓"
-                      : ""}
+                    <button
+                      className="goal-main-button"
+                      onClick={() =>
+                        toggleGoal(goal.id)
+                      }
+                      type="button"
+                    >
+                      <div className="goal-icon">
+                        {goal.icon || "✦"}
+                      </div>
+
+                      <div className="goal-copy">
+                        <strong>
+                          {goal.title}
+                        </strong>
+                        <span>
+                          {goal.subtitle ||
+                            goal.description ||
+                            "Keep moving forward."}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`goal-check ${
+                          goal.completed
+                            ? "checked"
+                            : ""
+                        }`}
+                      >
+                        {goal.completed
+                          ? "✓"
+                          : ""}
+                      </div>
+                    </button>
+
+                    <button
+                      className="goal-delete"
+                      type="button"
+                      title="Delete goal"
+                      onClick={(event) =>
+                        deleteGoal(
+                          event,
+                          goal.id
+                        )
+                      }
+                    >
+                      ×
+                    </button>
                   </div>
-
-                </button>
-
-              ))}
-
+                ))
+              )}
             </div>
 
-            <div className="goal-message">
+            {goalError && (
+              <div className="goal-inline-error">
+                {goalError}
+              </div>
+            )}
 
+            <div className="goal-message">
               <span className="message-star">
                 ☆
               </span>
-
               <div>
-
                 <strong>
-                  You're doing great, Shreya!
+                  {goalPercentage === 100
+                    ? "You cleared today's goals!"
+                    : "Keep your momentum going."}
                 </strong>
-
                 <p>
-                  Consistency is the real flex.
+                  {goalPercentage === 100
+                    ? "Tiny steps really do stack up."
+                    : "Consistency is the real flex."}
                 </p>
-
               </div>
-
               <span className="message-spark">
                 ✦
               </span>
-
             </div>
-
           </div>
-
         </section>
 
- 
-
-        {/* =========================================================
-            LOWER GRID
-        ========================================================== */}
-
         <section className="lower-grid">
-
-          {/* =====================================================
-              DSA ACTIVITY
-          ====================================================== */}
-
           <div className="dsa-section">
-
             <div className="section-heading">
-
               <div className="section-title">
-
                 <span className="section-icon">
                   &lt;/&gt;
                 </span>
-
-                <h2>
-                  DSA Activity
-                </h2>
-
+                <h2>Daily Activity</h2>
               </div>
-
-              <button
-                className="year-button"
-                onClick={() =>
-                  setSelectedYear(
-                    selectedYear ===
-                      "This Year"
-                      ? "Last Year"
-                      : "This Year"
-                  )
-                }
-              >
-
-                {selectedYear}
-
-                <span>
-                  ⌄
-                </span>
-
-              </button>
-
             </div>
 
             <div className="dsa-content">
-
               <div className="heatmap-area">
+<div className="months">
+  {contributionData.map((week, index) => {
+    const date = week[0].date;
 
-                <div className="months">
-
-                  {[
-                    "Jan",
-                    "Feb",
-                    "Mar",
-                    "Apr",
-                    "May",
-                    "Jun",
-                    "Jul",
-                    "Aug",
-                  ].map(
-                    (month) => (
-
-                      <span key={month}>
-                        {month}
-                      </span>
-
-                    )
-                  )}
-
-                </div>
+    return (
+      <span key={index}>
+        {date.getDate() <= 7
+          ? date.toLocaleString("default", {
+              month: "short",
+            })
+          : ""}
+      </span>
+    );
+  })}
+</div>
 
                 <div className="heatmap-wrapper">
-
                   <div className="weekdays">
-
-                    <span>
-                      Mon
-                    </span>
-
-                    <span>
-                      Wed
-                    </span>
-
-                    <span>
-                      Fri
-                    </span>
-
+                    
                   </div>
 
                   <div className="heatmap">
+  {contributionData.map(
+    (month, monthIndex) => (
+      <div
+        className="heat-column"
+        key={monthIndex}
+      >
+        {month.map((day) => {
+          const level =
+            day.count === 0
+              ? 0
+              : day.count === 1
+              ? 1
+              : day.count === 2
+              ? 2
+              : day.count === 3
+              ? 3
+              : 4;
 
-                    {contributionData.map(
-                      (
-                        column,
-                        columnIndex
-                      ) => (
-
-                        <div
-                          className="heat-column"
-                          key={columnIndex}
-                        >
-
-                          {column.map(
-                            (
-                              value,
-                              rowIndex
-                            ) => (
-
-                              <div
-                                key={rowIndex}
-                                className={`heat-cell level-${value}`}
-                                title={`${value} problems`}
-                              />
-
-                            )
-                          )}
-
-                        </div>
-
-                      )
-                    )}
-
-                  </div>
-
+          return (
+            <div
+              key={day.date.toISOString()}
+              className={`heat-cell level-${level}`}
+              title={`${day.date.toLocaleDateString()} • ${day.count} completed`}
+            />
+          );
+        })}
+      </div>
+    )
+  )}
+</div>
                 </div>
 
                 <div className="heatmap-legend">
-
-                  <span>
-                    Less
-                  </span>
-
-                  {[
-                    0,
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                  ].map(
+                  <span>Less</span>
+                  {[0, 1, 2, 3, 4, 5].map(
                     (level) => (
-
                       <div
                         key={level}
                         className={`heat-cell level-${level}`}
                       />
-
                     )
                   )}
-
-                  <span>
-                    More
-                  </span>
-
+                  <span>More</span>
                 </div>
-
               </div>
-
-              {/* DSA SUMMARY */}
-
-              <div className="dsa-summary">
-
-                <div className="problem-ring">
-
-                  <svg
-                    viewBox="0 0 120 120"
-                  >
-
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="48"
-                      className="ring-bg"
-                    />
-
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="48"
-                      className="ring-progress"
-                    />
-
-                  </svg>
-
-                  <div>
-
-                    <strong>
-                      158
-                    </strong>
-
-                    <span>
-                      Problems
-                    </span>
-
-                    <span>
-                      Solved
-                    </span>
-
-                  </div>
-
-                </div>
-
-                <div className="difficulty-list">
-
-                  <div>
-
-                    <span className="difficulty-dot easy" />
-
-                    <span>
-                      Easy
-                    </span>
-
-                    <strong>
-                      78
-                    </strong>
-
-                  </div>
-
-                  <div>
-
-                    <span className="difficulty-dot medium" />
-
-                    <span>
-                      Medium
-                    </span>
-
-                    <strong>
-                      56
-                    </strong>
-
-                  </div>
-
-                  <div>
-
-                    <span className="difficulty-dot hard" />
-
-                    <span>
-                      Hard
-                    </span>
-
-                    <strong>
-                      24
-                    </strong>
-
-                  </div>
-
-                </div>
-
-              </div>
-
             </div>
-
           </div>
 
-          {/* =====================================================
-              ACHIEVEMENTS
-          ====================================================== */}
-
           <div className="achievements-section">
-
             <div className="section-heading">
-
               <div className="section-title">
-
                 <span className="section-icon trophy">
                   ♛
                 </span>
-
-                <h2>
-                  Recent Achievements
-                </h2>
-
+                <h2>Recent Achievements</h2>
               </div>
-
             </div>
 
             <div className="achievement-list">
+              {achievements.length === 0 ? (
+                <div className="achievement-empty">
+                  <span>✦</span>
+                  <strong>
+                    Your first achievement is
+                    waiting.
+                  </strong>
+                  <small>
+                    Complete goals and keep
+                    learning to unlock badges.
+                  </small>
+                </div>
+              ) : (
+                achievements
+                  .slice(0, 4)
+                  .map((achievement) => (
+                    <div
+                      className={`achievement ${
+                        achievement.earned === false
+                          ? "locked"
+                          : ""
+                      }`}
+                      key={achievement.id}
+                    >
+                      <div className="achievement-icon">
+                        {achievement.icon}
+                      </div>
 
-              {achievements.map(
-                (achievement) => (
+                      <div className="achievement-copy">
+                        <strong>
+                          {achievement.title}
+                        </strong>
+                        <span>
+                          {achievement.description}
+                        </span>
+                      </div>
 
-                  <div
-                    className="achievement"
-                    key={achievement.id}
-                  >
-
-                    <div className="achievement-icon">
-                      {achievement.icon}
+                      <div className="achievement-meta">
+                        <strong>
+                          +{achievement.xp} XP
+                        </strong>
+                        <span>
+                          {achievement.time ||
+                            (achievement.earnedAt
+                              ? new Date(
+                                  achievement.earnedAt
+                                ).toLocaleDateString()
+                              : "Locked")}
+                        </span>
+                      </div>
                     </div>
-
-                    <div className="achievement-copy">
-
-                      <strong>
-                        {achievement.title}
-                      </strong>
-
-                      <span>
-                        {achievement.description}
-                      </span>
-
-                    </div>
-
-                    <div className="achievement-meta">
-
-                      <strong>
-                        +{achievement.xp} XP
-                      </strong>
-
-                      <span>
-                        {achievement.time}
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                )
+                  ))
               )}
-
             </div>
 
-            <button className="view-achievements">
-
+            <button
+              className="view-achievements"
+              type="button"
+            >
               View all achievements
-
-              <span>
-                →
-              </span>
-
+              <span>→</span>
             </button>
-
           </div>
-
         </section>
 
-        {/* =========================================================
-            AI LEARNING PATH
-        ========================================================== */}
-
         <section className="ai-path-section">
-
           <div className="ai-path-header">
-
             <div className="ai-title">
-
-              <div className="ai-icon">
-                ✣
-              </div>
-
+              <div className="ai-icon">✣</div>
               <div>
-
-                <h2>
-                  Your AI Learning Path
-                </h2>
-
+                <h2>Your AI Learning Path</h2>
                 <p>
                   Personalized just for you
                 </p>
-
               </div>
-
             </div>
-
           </div>
 
           <div className="ai-path">
-
             <div className="path-line" />
 
-            {learningSteps.map(
-              (step, index) => (
-
+            {learningSteps
+              .slice(0, 4)
+              .map((step, index) => (
                 <div
-                  className={`learning-step ${
-                    step.status
-                  }`}
+                  className={`learning-step ${step.status}`}
                   key={step.id}
                 >
-
                   <div className="learning-icon">
                     {step.icon}
                   </div>
@@ -1324,14 +1066,18 @@ function Progress() {
                     {step.label}
                   </span>
 
-                  <strong>
-                    {step.title}
-                  </strong>
+                  <strong>{step.title}</strong>
+
+                  {step.description && (
+                    <span className="learning-description">
+                      {step.description}
+                    </span>
+                  )}
 
                   {step.status ===
                     "current" && (
                     <span className="learning-progress">
-                      {step.progress}% Completed
+                      {step.progress || 0}% Completed
                     </span>
                   )}
 
@@ -1352,44 +1098,37 @@ function Progress() {
                   {step.status ===
                     "milestone" && (
                     <span className="learning-locked">
-                      ♙ Locked
+                      ♙ Milestone
                     </span>
                   )}
 
                   {index <
-                    learningSteps.length - 1 && (
+                    learningSteps
+                      .slice(0, 4)
+                      .length -
+                      1 && (
                     <span className="path-arrow">
                       →
                     </span>
                   )}
-
                 </div>
-
-              )
-            )}
-
-            {/* AI ROBOT */}
+              ))}
 
             <div className="ai-robot">
-
               <div className="robot-message">
-
-                I'll guide you
+                {learningSteps.length >
+                0
+                  ? "I'll guide you"
+                  : "Your path starts here"}
                 <br />
                 all the way! 💗
-
               </div>
 
               <div className="robot-body">
-
                 <div className="robot-head">
-
                   <div className="robot-eye left" />
-
                   <div className="robot-eye right" />
-
                   <div className="robot-smile" />
-
                 </div>
 
                 <div className="robot-torso">
@@ -1403,54 +1142,35 @@ function Progress() {
                 <div className="robot-arm right-arm">
                   ╲
                 </div>
-
               </div>
-
             </div>
-
           </div>
-
         </section>
 
-        {/* =========================================================
-            FOOTER
-        ========================================================== */}
-
         <div className="progress-footer">
-
-          <span>
-            ✦
-          </span>
-
+          <span>✦</span>
           Small steps today, big changes tomorrow.
-
         </div>
 
-        {/* =========================================================
-            ADD GOAL MODAL
-        ========================================================== */}
-
         {showGoalForm && (
-
           <div
             className="goal-modal-overlay"
             onClick={() =>
               setShowGoalForm(false)
             }
           >
-
             <div
               className="goal-modal"
               onClick={(e) =>
                 e.stopPropagation()
               }
             >
-
               <button
                 className="goal-modal-close"
                 onClick={() =>
                   setShowGoalForm(false)
                 }
+                type="button"
               >
                 ×
               </button>
@@ -1460,28 +1180,16 @@ function Progress() {
               </div>
 
               <div className="goal-modal-heading">
-
-                <span>
-                  Create a goal
-                </span>
-
-                <h2>
-                  Make today count.
-                </h2>
-
+                <span>Create a goal</span>
+                <h2>Make today count.</h2>
                 <p>
                   One small step is still a
                   step forward.
                 </p>
-
               </div>
 
               <div className="goal-form-field">
-
-                <label>
-                  Goal
-                </label>
-
+                <label>Goal</label>
                 <input
                   type="text"
                   placeholder="e.g. Learn React Hooks"
@@ -1493,16 +1201,12 @@ function Progress() {
                   }
                   autoFocus
                 />
-
               </div>
 
               <div className="goal-form-field">
-
                 <label>
                   Description{" "}
-                  <span>
-                    Optional
-                  </span>
+                  <span>Optional</span>
                 </label>
 
                 <textarea
@@ -1515,45 +1219,29 @@ function Progress() {
                   }
                   rows={3}
                 />
-
               </div>
 
               <div className="goal-xp-preview">
-
-                <span>
-                  ✦
-                </span>
-
+                <span>✦</span>
                 <div>
-
-                  <strong>
-                    +50 XP
-                  </strong>
-
+                  <strong>+50 XP</strong>
                   <small>
                     You'll earn XP when you
                     complete this goal.
                   </small>
-
                 </div>
-
               </div>
 
               <div className="goal-modal-actions">
-
                 <button
                   className="goal-cancel"
                   onClick={() => {
-
-                    setShowGoalForm(
-                      false
-                    );
-
+                    setShowGoalForm(false);
                     setNewGoalTitle("");
-
                     setNewGoalDescription("");
-
+                    setGoalError("");
                   }}
+                  type="button"
                 >
                   Cancel
                 </button>
@@ -1562,28 +1250,21 @@ function Progress() {
                   className="goal-create"
                   onClick={addGoal}
                   disabled={
-                    !newGoalTitle.trim()
+                    !newGoalTitle.trim() ||
+                    goalSaving
                   }
+                  type="button"
                 >
-
-                  Create Goal
-
-                  <span>
-                    ✦
-                  </span>
-
+                  {goalSaving
+                    ? "Creating..."
+                    : "Create Goal"}
+                  <span>✦</span>
                 </button>
-
               </div>
-
             </div>
-
           </div>
-
         )}
-
       </main>
-
     </div>
   );
 }

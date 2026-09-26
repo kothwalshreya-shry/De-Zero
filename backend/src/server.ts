@@ -315,20 +315,42 @@ app.get(
   authenticateToken,
   async (req: AuthRequest, res) => {
     try {
-      const progress = await prisma.progress.findMany({
+      const userId = req.user!.userId;
+
+      const goals = await prisma.dailyGoal.findMany({
         where: {
-          userId: req.user!.userId,
+          userId,
         },
         orderBy: {
-          date: "asc",
+          date: "desc",
         },
       });
 
+      const completedGoals = goals.filter(
+        (goal) => goal.completed
+      ).length;
+
+      const totalXP = completedGoals * 50;
+
+      const level = Math.floor(totalXP / 250) + 1;
+
+      const nextLevelXP = level * 250;
+
       res.json({
-        progress,
+        stats: {
+          totalXP,
+          level,
+          nextLevelXP,
+          completedGoals,
+          totalGoals: goals.length,
+        },
+        goals,
       });
     } catch (error) {
-      console.error("Progress fetch error:", error);
+      console.error(
+        "Progress fetch error:",
+        error
+      );
 
       res.status(500).json({
         error: "Could not fetch progress",
@@ -368,71 +390,9 @@ app.get(
     }
   }
 );
-app.get(
-  "/api/progress",
-  authenticateToken,
-  async (req: AuthRequest, res) => {
-    try {
-      const progress = await prisma.progress.findMany({
-        where: {
-          userId: req.user!.userId,
-        },
-        orderBy: {
-          date: "asc",
-        },
-      });
 
-      res.json({
-        progress,
-      });
-    } catch (error) {
-      console.error("Progress fetch error:", error);
 
-      res.status(500).json({
-        error: "Could not fetch progress",
-      });
-    }
-  }
-);
 
-app.post(
-  "/api/progress",
-  authenticateToken,
-  async (req: AuthRequest, res) => {
-    try {
-      const { minutes, completed } = req.body;
-
-      if (
-        typeof minutes !== "number" ||
-        minutes < 0 ||
-        typeof completed !== "boolean"
-      ) {
-        return res.status(400).json({
-          error: "Invalid progress data",
-        });
-      }
-
-      const progress = await prisma.progress.create({
-        data: {
-          userId: req.user!.userId,
-          minutes,
-          completed,
-        },
-      });
-
-      res.status(201).json({
-        message: "Progress saved successfully",
-        progress,
-      });
-    } catch (error) {
-      console.error("Progress save error:", error);
-
-      res.status(500).json({
-        error: "Could not save progress",
-      });
-    }
-  }
-);
 app.get(
   "/api/goals",
   authenticateToken,
