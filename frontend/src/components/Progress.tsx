@@ -120,25 +120,20 @@ const fallbackLearningPath: LearningStep[] = [
 ];
 
 function normalizeProgress(data: any) {
+  const rawStats = data?.stats ?? {};
+
   const stats: ProgressStats = {
-    ...emptyStats,
-    ...(data?.stats || {}),
+    totalXP: Number(rawStats.totalXP ?? 0),
+    level: Number(rawStats.level ?? 1),
+    nextLevelXP: Number(rawStats.nextLevelXP ?? 250),
+    completedGoals: Number(rawStats.completedGoals ?? 0),
+    totalGoals: Number(rawStats.totalGoals ?? 0),
+    streak: Number(rawStats.streak ?? 0),
   };
 
   const goals: Goal[] = Array.isArray(data?.goals)
     ? data.goals
     : [];
-
-  const rawDsa = data?.dsa || data?.dsaStats || {};
-  const dsa: DSAStats = {
-    solved: Number(rawDsa.solved ?? data?.dsaSolved ?? 0),
-    easy: Number(rawDsa.easy ?? 0),
-    medium: Number(rawDsa.medium ?? 0),
-    hard: Number(rawDsa.hard ?? 0),
-    activity: Array.isArray(rawDsa.activity)
-      ? rawDsa.activity
-      : [],
-  };
 
   const achievements: Achievement[] = Array.isArray(
     data?.achievements
@@ -156,12 +151,9 @@ function normalizeProgress(data: any) {
   return {
     stats,
     goals,
-    dsa,
     achievements,
-    learningPath:
-      learningPath.length > 0
-        ? learningPath
-        : fallbackLearningPath,
+    learningPath,
+    dsa: data?.dsa ?? emptyDSA,
   };
 }
 
@@ -177,7 +169,7 @@ function Progress() {
 
   const [dsa, setDsa] = useState<DSAStats>(emptyDSA);
   const [achievements, setAchievements] =
-    useState<Achievement[]>([]);
+  useState<Achievement[]>([]);
   const [learningSteps, setLearningSteps] =
     useState<LearningStep[]>(fallbackLearningPath);
 
@@ -217,11 +209,37 @@ function Progress() {
       const data = await response.json();
       const normalized = normalizeProgress(data);
 
+      const aiResponse = await fetch(
+  `${API}/api/ai/learning-path`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
+
+if (aiResponse.ok) {
+  const aiData = await aiResponse.json();
+
+  if (Array.isArray(aiData.learningPath)) {
+    normalized.learningPath = aiData.learningPath;
+  }
+}
       setProgressStats(normalized.stats);
       setGoals(normalized.goals);
       setDsa(normalized.dsa);
-      setAchievements(normalized.achievements);
-      setLearningSteps(normalized.learningPath);
+      setAchievements(
+  normalized.achievements.length > 0
+    ? normalized.achievements
+    : localAchievements
+);
+      setLearningSteps(
+  normalized.learningPath.length > 0
+    ? normalized.learningPath
+    : personalizedFallbackPath
+);
     } catch (error) {
       console.error("Progress loading error:", error);
       setProgressError(
@@ -242,12 +260,113 @@ function Progress() {
 
   const totalGoals = goals.length;
 
-  const goalPercentage =
+   const goalPercentage =
     totalGoals === 0
       ? 0
       : Math.round(
           (completedGoals / totalGoals) * 100
         );
+
+
+  const personalizedFallbackPath: LearningStep[] = [
+  {
+    id: 1,
+    icon: "</>",
+    label: "Current",
+    title:
+      completedGoals === 0
+        ? "Start your first goal"
+        : completedGoals < 3
+        ? "Build your foundation"
+        : completedGoals < 5
+        ? "Strengthen your skills"
+        : "Apply what you've learned",
+    description:
+      completedGoals === 0
+        ? "Complete your first goal to begin your journey."
+        : `You've completed ${completedGoals} goal${
+            completedGoals === 1 ? "" : "s"
+          }. Keep building momentum.`,
+    status: "current",
+    progress: goalPercentage,
+  },
+  {
+    id: 2,
+    icon: "ϟ",
+    label: "Up Next",
+    title:
+      completedGoals < 3
+        ? "Complete 3 meaningful goals"
+        : completedGoals < 5
+        ? "Take on a deeper challenge"
+        : "Build something real",
+    description:
+      "Your next step adapts to the progress you're making.",
+    status: "next",
+  },
+  {
+    id: 3,
+    icon: "⚛",
+    label: "After That",
+    title:
+      completedGoals < 5
+        ? "Practical problem solving"
+        : "Advanced project building",
+    description:
+      "This becomes your next focus as your foundation grows.",
+    status: "locked",
+  },
+  {
+    id: 4,
+    icon: "♛",
+    label: "Milestone",
+    title: "Build something you're proud of",
+    description:
+      "Turn your learning into a real project.",
+    status: "milestone",
+  },
+];
+
+  const localAchievements: Achievement[] = [
+  {
+    id: 1,
+    icon: "✦",
+    title: "First Step",
+    description: "You completed your first goal.",
+    xp: 50,
+    earned: completedGoals >= 1,
+    time: completedGoals >= 1 ? "Unlocked" : "Locked",
+  },
+  {
+    id: 2,
+    icon: "✧",
+    title: "Getting Started",
+    description: "You completed 3 goals.",
+    xp: 100,
+    earned: completedGoals >= 3,
+    time: completedGoals >= 3 ? "Unlocked" : "Locked",
+  },
+  {
+    id: 3,
+    icon: "♛",
+    title: "Building Momentum",
+    description: "You completed 5 goals.",
+    xp: 150,
+    earned: completedGoals >= 5,
+    time: completedGoals >= 5 ? "Unlocked" : "Locked",
+  },
+  {
+    id: 4,
+    icon: "✦",
+    title: "Goal Crusher",
+    description: "You completed 10 goals.",
+    xp: 250,
+    earned: completedGoals >= 10,
+    time: completedGoals >= 10 ? "Unlocked" : "Locked",
+  },
+];
+
+ 
 
   const levelProgress = useMemo(() => {
     const levelStart =

@@ -391,7 +391,175 @@ app.get(
   }
 );
 
+app.post(
+  "/api/ai/learning-path",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.userId;
 
+      const goals = await prisma.dailyGoal.findMany({
+        where: { userId },
+        orderBy: { date: "desc" },
+        take: 20,
+      });
+
+      const completedGoals = goals.filter(
+        (goal) => goal.completed
+      ).length;
+
+      const totalGoals = goals.length;
+
+      const totalXP = goals
+        .filter((goal) => goal.completed)
+        .reduce(
+          (sum, goal) => sum + (goal.xp || 0),
+          0
+        );
+
+      const level =
+        Math.floor(totalXP / 250) + 1;
+
+      const recentGoals = goals
+        .slice(0, 10)
+        .map(
+          (goal) =>
+            `- ${goal.title} | Category: ${
+              goal.category || "general"
+            } | Completed: ${
+              goal.completed
+            } | XP: ${goal.xp || 0}`
+        )
+        .join("\n");
+
+      const prompt = `
+You are the personalization engine for De Zéro,
+an AI career companion for beginner software developers.
+
+Create a realistic learning path based ONLY on the
+student's actual progress and goals provided below.
+
+STUDENT DATA
+
+Recent goals:
+${recentGoals || "No goals created yet."}
+
+Progress:
+- Completed goals: ${completedGoals}
+- Total goals: ${totalGoals}
+- Total XP: ${totalXP}
+- Current level: ${level}
+
+PERSONALIZATION RULES
+
+1. Look at the student's actual goals and completed work.
+2. Continue skills they are already working on.
+3. If they have completed very little, recommend fundamentals.
+4. If they have completed several goals, gradually increase difficulty.
+5. Do not randomly introduce an unrelated technology.
+6. Do not assume the student knows a technology unless their goals
+   show evidence of it.
+7. The current step should represent what they should work on NOW.
+8. The next step should naturally follow the current step.
+9. The future step should build on the previous two.
+10. The milestone must be a practical project that combines the skills
+    developed along the path.
+11. Use the student's actual interests when choosing projects.
+12. Keep the path achievable for a student.
+13. Never claim something is completed unless the provided data shows it.
+14. If there is not enough information, start with programming fundamentals.
+15. Progress for the current step should reflect the student's actual
+    completed goals. Do not invent a high percentage.
+
+Return ONLY valid JSON.
+Do not include markdown.
+Do not include explanations outside the JSON.
+
+Use exactly this structure:
+
+{
+  "learningPath": [
+    {
+      "id": 1,
+      "icon": "</>",
+      "label": "Current",
+      "title": "short personalized current step",
+      "description": "one short explanation",
+      "status": "current",
+      "progress": 0
+    },
+    {
+      "id": 2,
+      "icon": "ϟ",
+      "label": "Up Next",
+      "title": "short personalized next step",
+      "description": "one short explanation",
+      "status": "next"
+    },
+    {
+      "id": 3,
+      "icon": "⚛",
+      "label": "After That",
+      "title": "short personalized future step",
+      "description": "one short explanation",
+      "status": "locked"
+    },
+    {
+      "id": 4,
+      "icon": "♛",
+      "label": "Milestone",
+      "title": "short practical project",
+      "description": "one short explanation",
+      "status": "milestone"
+    }
+  ]
+}
+
+Additional requirements:
+
+- "progress" must be an integer from 0 to 100.
+- Keep titles under 8 words.
+- Keep descriptions to one sentence.
+- Make every step connected to the previous step.
+- Make the milestone project practical and portfolio-friendly.
+`;
+
+      const aiText = await getAIResponse(prompt);
+
+      const cleaned = aiText
+        .replace(/```json/gi, "")
+        .replace(/```/g, "")
+        .trim();
+
+      const parsed = JSON.parse(cleaned);
+
+      if (
+        !parsed.learningPath ||
+        !Array.isArray(parsed.learningPath)
+      ) {
+        throw new Error(
+          "AI returned an invalid learning path"
+        );
+      }
+
+      res.json({
+        learningPath: parsed.learningPath.slice(0, 4),
+      });
+    } catch (error) {
+      console.error(
+        "AI learning path error:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Could not generate AI learning path",
+      });
+    }
+  }
+);
 
 app.get(
   "/api/goals",

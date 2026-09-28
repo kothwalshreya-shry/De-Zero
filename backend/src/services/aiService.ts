@@ -1,5 +1,5 @@
 const OLLAMA_URL = "http://127.0.0.1:11434/api/chat";
-const MODEL = "qwen3:4b";
+const MODEL = "llama3.2:latest";
 
 export async function getAIResponse(
   message: string,
