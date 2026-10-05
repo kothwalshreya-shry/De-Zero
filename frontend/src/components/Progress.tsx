@@ -24,13 +24,13 @@ type ProgressStats = {
   streak?: number;
 };
 
-type DSAProblem = {
+type DailyTask = {
   id: number;
-  title?: string;
-  difficulty: string;
-  topic?: string | null;
-  solved: boolean;
-  solvedAt?: string | null;
+  title: string;
+  description?: string;
+  duration?: number;
+  xp?: number;
+  completed: boolean;
 };
 
 type DSAActivity = {
@@ -158,6 +158,10 @@ function normalizeProgress(data: any) {
 }
 
 function Progress() {
+  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
+const [celebrating, setCelebrating] = useState(false);
+const [completedTask, setCompletedTask] =
+  useState<DailyTask | null>(null);
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [newGoalTitle, setNewGoalTitle] = useState("");
   const [newGoalDescription, setNewGoalDescription] =
@@ -182,6 +186,80 @@ function Progress() {
   const [progressError, setProgressError] = useState("");
 
   const token = localStorage.getItem("token");
+
+const completeDailyTask = (task: DailyTask) => {
+  if (task.completed || celebrating) return;
+
+  // Mark task as completed
+  setDailyTasks((previous) =>
+    previous.map((item) =>
+      item.id === task.id
+        ? { ...item, completed: true }
+        : item
+    )
+  );
+
+  // Store the task being celebrated
+  setCompletedTask(task);
+
+  // Start celebration
+  setCelebrating(true);
+
+  // Tiny celebratory sound using Web Audio API
+  try {
+    const AudioContext =
+      window.AudioContext ||
+      (window as any).webkitAudioContext;
+
+    const audioContext = new AudioContext();
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = "sine";
+
+    oscillator.frequency.setValueAtTime(
+      520,
+      audioContext.currentTime
+    );
+
+    oscillator.frequency.exponentialRampToValueAtTime(
+      880,
+      audioContext.currentTime + 0.35
+    );
+
+    gainNode.gain.setValueAtTime(
+      0.0001,
+      audioContext.currentTime
+    );
+
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.12,
+      audioContext.currentTime + 0.05
+    );
+
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.0001,
+      audioContext.currentTime + 0.6
+    );
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(
+      audioContext.currentTime + 0.6
+    );
+  } catch (error) {
+    console.log("Celebration sound unavailable");
+  }
+
+  // Return to the Progress page after animation
+  setTimeout(() => {
+    setCelebrating(false);
+    setCompletedTask(null);
+  }, 3200);
+};
 
   const loadProgress = async () => {
     if (!token) {
@@ -611,75 +689,7 @@ const contributionData = useMemo(() => {
 
   return (
     <div className="progress-page">
-      <aside className="progress-sidebar">
-        <div className="sidebar-brand">
-          <div className="brand-name">
-            De Zéro
-            <span className="brand-spark">✦</span>
-          </div>
-          <div className="brand-tagline">
-            BEGIN. BUILD. BECOME.
-          </div>
-        </div>
 
-        <nav className="sidebar-nav">
-          <a href="/dashboard" className="sidebar-link">
-            <span className="sidebar-icon">⌂</span>
-            <span>Dashboard</span>
-          </a>
-          <a href="/roadmap" className="sidebar-link">
-            <span className="sidebar-icon">♧</span>
-            <span>Roadmap</span>
-          </a>
-          <a href="/learn" className="sidebar-link">
-            <span className="sidebar-icon">▣</span>
-            <span>Learn</span>
-          </a>
-          <a href="/projects" className="sidebar-link">
-            <span className="sidebar-icon">⌘</span>
-            <span>Projects</span>
-          </a>
-          <a href="/ai-career" className="sidebar-link">
-            <span className="sidebar-icon">◎</span>
-            <span>AI Career</span>
-          </a>
-          <a
-            href="/progress"
-            className="sidebar-link active"
-          >
-            <span className="sidebar-icon">♘</span>
-            <span>Progress</span>
-          </a>
-          <a href="/profile" className="sidebar-link">
-            <span className="sidebar-icon">◯</span>
-            <span>Profile</span>
-          </a>
-        </nav>
-
-        <div className="level-widget">
-          <div className="level-icon">✦</div>
-          <div className="level-number">
-            Lv. {progressStats.level}
-          </div>
-          <div className="level-name">
-            Explorer
-          </div>
-          <div className="xp-text">
-            {progressStats.totalXP.toLocaleString()}{" "}
-            /{" "}
-            {progressStats.nextLevelXP.toLocaleString()}{" "}
-            XP
-          </div>
-          <div className="xp-track">
-            <div
-              className="xp-fill"
-              style={{
-                width: `${levelProgress}%`,
-              }}
-            />
-          </div>
-        </div>
-      </aside>
 
       <main className="progress-main">
         <header className="progress-topbar">
@@ -995,164 +1005,7 @@ const active =
           </div>
         </section>
 
-        <section className="lower-grid">
-          <div className="dsa-section">
-            <div className="section-heading">
-              <div className="section-title">
-                <span className="section-icon">
-                  &lt;/&gt;
-                </span>
-                <h2>Daily Activity</h2>
-              </div>
-            </div>
 
-            <div className="dsa-content">
-              <div className="heatmap-area">
-<div className="months">
-  {contributionData.map((week, index) => {
-    const date = week[0].date;
-
-    return (
-      <span key={index}>
-        {date.getDate() <= 7
-          ? date.toLocaleString("default", {
-              month: "short",
-            })
-          : ""}
-      </span>
-    );
-  })}
-</div>
-
-                <div className="heatmap-wrapper">
-                  <div className="weekdays">
-                    
-                  </div>
-
-                  <div className="heatmap">
-  {contributionData.map(
-    (month, monthIndex) => (
-      <div
-        className="heat-column"
-        key={monthIndex}
-      >
-        {month.map((day) => {
-          const level =
-            day.count === 0
-              ? 0
-              : day.count === 1
-              ? 1
-              : day.count === 2
-              ? 2
-              : day.count === 3
-              ? 3
-              : 4;
-
-          return (
-            <div
-              key={day.date.toISOString()}
-              className={`heat-cell level-${level}`}
-              title={`${day.date.toLocaleDateString()} • ${day.count} completed`}
-            />
-          );
-        })}
-      </div>
-    )
-  )}
-</div>
-                </div>
-
-                <div className="heatmap-legend">
-                  <span>Less</span>
-                  {[0, 1, 2, 3, 4, 5].map(
-                    (level) => (
-                      <div
-                        key={level}
-                        className={`heat-cell level-${level}`}
-                      />
-                    )
-                  )}
-                  <span>More</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="achievements-section">
-            <div className="section-heading">
-              <div className="section-title">
-                <span className="section-icon trophy">
-                  ♛
-                </span>
-                <h2>Recent Achievements</h2>
-              </div>
-            </div>
-
-            <div className="achievement-list">
-              {achievements.length === 0 ? (
-                <div className="achievement-empty">
-                  <span>✦</span>
-                  <strong>
-                    Your first achievement is
-                    waiting.
-                  </strong>
-                  <small>
-                    Complete goals and keep
-                    learning to unlock badges.
-                  </small>
-                </div>
-              ) : (
-                achievements
-                  .slice(0, 4)
-                  .map((achievement) => (
-                    <div
-                      className={`achievement ${
-                        achievement.earned === false
-                          ? "locked"
-                          : ""
-                      }`}
-                      key={achievement.id}
-                    >
-                      <div className="achievement-icon">
-                        {achievement.icon}
-                      </div>
-
-                      <div className="achievement-copy">
-                        <strong>
-                          {achievement.title}
-                        </strong>
-                        <span>
-                          {achievement.description}
-                        </span>
-                      </div>
-
-                      <div className="achievement-meta">
-                        <strong>
-                          +{achievement.xp} XP
-                        </strong>
-                        <span>
-                          {achievement.time ||
-                            (achievement.earnedAt
-                              ? new Date(
-                                  achievement.earnedAt
-                                ).toLocaleDateString()
-                              : "Locked")}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
-
-            <button
-              className="view-achievements"
-              type="button"
-            >
-              View all achievements
-              <span>→</span>
-            </button>
-          </div>
-        </section>
 
         <section className="ai-path-section">
           <div className="ai-path-header">
@@ -1265,7 +1118,10 @@ const active =
             </div>
           </div>
         </section>
+        <section className="daily-plan-section">
+ 
 
+</section>
         <div className="progress-footer">
           <span>✦</span>
           Small steps today, big changes tomorrow.
@@ -1384,6 +1240,43 @@ const active =
           </div>
         )}
       </main>
+      {celebrating && (
+  <div className="completion-overlay">
+    <div className="completion-stars">
+      ✦
+    </div>
+
+    <div className="completion-content">
+
+      <span className="completion-small">
+        TASK COMPLETE
+      </span>
+
+      <h1>
+        YOU MOVED FORWARD.
+      </h1>
+
+      <p>
+        {completedTask?.title}
+      </p>
+
+      <div className="journey">
+        <div className="journey-track">
+          <div className="journey-glow" />
+
+          <div className="journey-runner">
+            ✦
+          </div>
+        </div>
+      </div>
+
+      <span className="completion-xp">
+        +{completedTask?.xp || 10} XP
+      </span>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }

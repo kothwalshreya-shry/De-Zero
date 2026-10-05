@@ -1,14 +1,8 @@
 const OLLAMA_URL = "http://127.0.0.1:11434/api/chat";
 const MODEL = "llama3.2:latest";
 
-export async function getAIResponse(
-  message: string,
-  history: { role: "user" | "assistant"; content: string }[] = []
-) {
-  const messages = [
-    {
-      role: "system",
-      content: `You are De Zero, an AI career companion for beginner and student developers.
+const DEFAULT_SYSTEM_PROMPT = `
+You are De Zero, an AI career companion for beginner and student developers.
 
 Your job is to help users:
 - Learn software development
@@ -65,14 +59,30 @@ IMPORTANT:
 - Do not pretend to know personal information about the user unless it is provided in the conversation.
 - Use the conversation history to maintain context.
 - Be technically accurate.
-- If you are unsure about something, say so rather than inventing information.`,
+- If you are unsure about something, say so rather than inventing information.
+`;
+
+export async function getAIResponse(
+  message: string,
+  history: {
+    role: "user" | "assistant";
+    content: string;
+  }[] = [],
+  systemPrompt: string = DEFAULT_SYSTEM_PROMPT
+) {
+  const messages = [
+    {
+      role: "system" as const,
+      content: systemPrompt,
     },
+
     ...history.map((item) => ({
       role: item.role,
       content: item.content,
     })),
+
     {
-      role: "user",
+      role: "user" as const,
       content: message,
     },
   ];
@@ -98,6 +108,10 @@ IMPORTANT:
   }
 
   const data = await response.json();
+
+  if (!data?.message?.content) {
+    throw new Error("Ollama returned an empty response.");
+  }
 
   return data.message.content;
 }

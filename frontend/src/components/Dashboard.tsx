@@ -25,17 +25,6 @@ type NavItem = {
   path?: string;
 };
 
-const navItems: NavItem[] = [
-  { label: "Dashboard", icon: "▦" },
-  { label: "Mission", icon: "✦", path: "/mission" },
-  { label: "Learn", icon: "▱", path: "/learn" },
-  { label: "Projects", icon: "</>", path: "/projects" },
-  { label: "Roadmap", icon: "◇", path: "/roadmap" },
-  { label: "AI Career", icon: "✧", path: "/chat" },
-  { label: "Progress", icon: "▥", path: "/progress" },
-  { label: "Resources", icon: "□", path: "/resources" },
-  { label: "Community", icon: "♧", path: "/community" },
-];
 
 function Dashboard() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -253,75 +242,7 @@ function Dashboard() {
         sidebarOpen ? "sidebar-expanded" : "sidebar-collapsed"
       }`}
     >
-      {/* SIDEBAR */}
-
-      <aside className="dashboard-sidebar">
-        <div className="brand">
-          <div className="brand-mark">DZ</div>
-
-          <div className="brand-text">
-            <strong>De Zéro</strong>
-            <span>BEGIN. BUILD. BECOME.</span>
-          </div>
-        </div>
-
-        <button
-          className="sidebar-toggle"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label="Toggle sidebar"
-        >
-          ☰
-        </button>
-
-        <nav className="sidebar-nav">
-          {navItems.map((item, index) => (
-            <button
-              key={item.label}
-              className={`sidebar-item ${
-                index === 0 ? "active" : ""
-              }`}
-              onClick={() => item.path && goTo(item.path)}
-            >
-              <span className="sidebar-icon">{item.icon}</span>
-
-              <span className="sidebar-label">
-                {item.label}
-              </span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="upgrade-card">
-            <div className="upgrade-glow" />
-
-            <span className="upgrade-emoji">✦</span>
-
-            <h3>Level up faster.</h3>
-
-            <p>
-              More projects, smarter feedback & deeper career prep.
-            </p>
-
-            <button onClick={() => goTo("/ai-career")}>
-              Explore AI
-            </button>
-          </div>
-
-          <div className="sidebar-user">
-            <div className="user-avatar">
-              {user?.name?.charAt(0).toUpperCase() || "D"}
-            </div>
-
-            <div className="sidebar-user-info">
-              <strong>{user?.name || "Developer"}</strong>
-              <span>Keep building 🚀</span>
-            </div>
-
-            <span className="user-chevron">⌄</span>
-          </div>
-        </div>
-      </aside>
+ 
 
       {/* MAIN */}
 

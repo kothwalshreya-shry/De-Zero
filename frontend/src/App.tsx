@@ -16,6 +16,8 @@ import Home from "./components/Home";
 import Dashboard from "./components/Dashboard";
 import Chat from "./components/Chat";
 import AppNavbar from "./components/AppNavbar";
+import Interview from "./components/Interview";
+import Resume from "./components/Resume";
 
 
 // =========================================================
@@ -168,49 +170,43 @@ function App() {
 
         {/* RESUME */}
         <Route
-          path="/resume"
-          element={
-            <ProtectedLayout
-              isLoggedIn={isLoggedIn}
-              onLogout={handleLogout}
-            >
-              <div
-                style={{
-                  color: "white",
-                  padding: "120px 60px",
-                }}
-              >
-                <h1>Resume</h1>
-                <p>Resume page coming soon.</p>
-              </div>
-            </ProtectedLayout>
-          }
-        />
+  path="/resume"
+  element={
+    <ProtectedLayout
+      isLoggedIn={isLoggedIn}
+      onLogout={handleLogout}
+    >
+      <Resume />
+    </ProtectedLayout>
+  }
+/>
 
 
         {/* INTERVIEW */}
         <Route
-          path="/interview"
-          element={
-            <ProtectedLayout
-              isLoggedIn={isLoggedIn}
-              onLogout={handleLogout}
-            >
-              <div
-                style={{
-                  color: "white",
-                  padding: "120px 60px",
-                }}
-              >
-                <h1>Interview</h1>
-                <p>Interview page coming soon.</p>
-              </div>
-            </ProtectedLayout>
-          }
-        />
+  path="/interview"
+  element={
+    <ProtectedLayout
+      isLoggedIn={isLoggedIn}
+      onLogout={handleLogout}
+    >
+      <Interview />
+    </ProtectedLayout>
+  }
+/>
 
 
-        <Route path="/progress" element={<Progress />} />
+        <Route
+  path="/progress"
+  element={
+    <ProtectedLayout
+      isLoggedIn={isLoggedIn}
+      onLogout={handleLogout}
+    >
+      <Progress />
+    </ProtectedLayout>
+  }
+/>
 
 
         {/* PROFILE */}
